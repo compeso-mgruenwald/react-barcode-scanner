@@ -63,4 +63,26 @@ describe("deepEqual", () => {
     expect(deepEqual({ facingMode: "environment" }, { facingMode: "user" })).toBe(false);
     expect(deepEqual("environment", { facingMode: "environment" })).toBe(false);
   });
+
+  it("treats undefined object values as absent", () => {
+    expect(
+      deepEqual({ facingMode: "environment", width: undefined }, { facingMode: "environment" })
+    ).toBe(true);
+    expect(
+      deepEqual({ facingMode: "environment" }, { facingMode: "environment", width: undefined })
+    ).toBe(true);
+    expect(
+      deepEqual(
+        { facingMode: { exact: "environment", ideal: undefined } },
+        { facingMode: { exact: "environment" } }
+      )
+    ).toBe(true);
+    expect(
+      deepEqual(
+        { facingMode: "environment", width: undefined },
+        { facingMode: "environment", height: 720 }
+      )
+    ).toBe(false);
+    expect(deepEqual([undefined], [])).toBe(false);
+  });
 });

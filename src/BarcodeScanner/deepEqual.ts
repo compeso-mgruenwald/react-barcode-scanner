@@ -50,18 +50,19 @@ function areArraysEqual(a: unknown[], b: unknown[]): boolean {
   return true;
 }
 
-function areObjectsEqual(a: object, b: object): boolean {
-  let properties = Object.keys(a);
+function definedProperties(value: object) {
+  return Object.keys(value).filter((property) => Reflect.get(value, property) !== undefined);
+}
 
-  if (Object.keys(b).length !== properties.length) {
+function areObjectsEqual(a: object, b: object): boolean {
+  let properties = definedProperties(a);
+
+  if (definedProperties(b).length !== properties.length) {
     return false;
   }
 
   for (let property of properties) {
-    if (
-      !Object.hasOwn(b, property) ||
-      !isEqual(Reflect.get(a, property), Reflect.get(b, property))
-    ) {
+    if (!isEqual(Reflect.get(a, property), Reflect.get(b, property))) {
       return false;
     }
   }

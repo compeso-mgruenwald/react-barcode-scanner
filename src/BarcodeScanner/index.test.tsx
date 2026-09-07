@@ -9,7 +9,7 @@ vi.mock("@zxing/browser", async (importOriginal) => {
   return {
     ...actual,
     BrowserMultiFormatReader: class BrowserMultiFormatReader {
-      decodeOnceFromConstraints() {
+      decodeOnceFromStream() {
         return Promise.resolve({ getText: () => "" });
       }
     }
@@ -52,26 +52,44 @@ function videoFrom(container: HTMLElement) {
   return video;
 }
 
-function attachStoppableStream(video: HTMLVideoElement, stop: ReturnType<typeof vi.fn>) {
+function streamWithStop() {
+  let stop = vi.fn();
   let stream = new MediaStream();
   Object.defineProperty(stream, "getTracks", {
     configurable: true,
     value: () => [{ stop }]
   });
-  video.srcObject = stream;
+  return { stream, stop };
+}
+
+function attachOwnedStream(
+  videoElement: { current: HTMLVideoElement | null },
+  isCancelled: (() => boolean) | undefined,
+  onStream: (stream: MediaStream) => void
+) {
+  let { stream, stop } = streamWithStop();
+
+  if (videoElement.current) {
+    videoElement.current.srcObject = stream;
+  }
+
+  if (isCancelled?.()) {
+    stop();
+    return stop;
+  }
+
+  onStream(stream);
+  return stop;
 }
 
 function mockDecodeAttachingStream() {
   let stops: Array<ReturnType<typeof vi.fn>> = [];
 
-  vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async (_reader, videoElement) => {
-    let stop = vi.fn();
-    stops.push(stop);
-
-    if (videoElement.current) {
-      attachStoppableStream(videoElement.current, stop);
+  vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+    async (_reader, videoElement, _constraints, isCancelled, onStream) => {
+      stops.push(attachOwnedStream(videoElement, isCancelled, onStream));
     }
-  });
+  );
 
   return { stops };
 }
@@ -285,18 +303,20 @@ describe("BarcodeScanner", () => {
     let stops: Array<ReturnType<typeof vi.fn>> = [];
     let call = 0;
 
-    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async (_reader, videoElement) => {
-      let stop = vi.fn();
-      stops.push(stop);
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+      async (_reader, videoElement, _constraints, isCancelled, onStream) => {
+        let stop = attachOwnedStream(videoElement, undefined, onStream);
+        stops.push(stop);
 
-      if (videoElement.current) {
-        attachStoppableStream(videoElement.current, stop);
-      }
+        if (call++ === 0) {
+          await first.promise;
+        }
 
-      if (call++ === 0) {
-        await first.promise;
+        if (isCancelled()) {
+          stop();
+        }
       }
-    });
+    );
 
     let { rerender, onSuccess, onError } = renderScanner({
       constraints: { facingMode: "environment" }
@@ -329,15 +349,25 @@ describe("BarcodeScanner", () => {
   it("stops tracks that attach after doScan becomes false", async () => {
     stubMediaDevices();
     let attach = deferred();
-    let stop = vi.fn();
+    let stops: Array<ReturnType<typeof vi.fn>> = [];
 
-    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async (_reader, videoElement) => {
-      await attach.promise;
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+      async (_reader, videoElement, _constraints, isCancelled, onStream) => {
+        await attach.promise;
+        let { stream, stop } = streamWithStop();
 
-      if (videoElement.current) {
-        attachStoppableStream(videoElement.current, stop);
+        if (videoElement.current) {
+          videoElement.current.srcObject = stream;
+        }
+
+        onStream(stream);
+        if (isCancelled()) {
+          stop();
+        }
+
+        stops.push(stop);
       }
-    });
+    );
 
     let { rerender, onSuccess, onError } = renderScanner();
 
@@ -352,7 +382,54 @@ describe("BarcodeScanner", () => {
       await vi.mocked(decodeBarcodeFromConstraints).mock.results[0]?.value;
     });
 
-    expect(stop).toHaveBeenCalledOnce();
+    expect(stops[0]).toHaveBeenCalledOnce();
+  });
+
+  it("stops a late first stream after constraints change without stopping the successor", async () => {
+    stubMediaDevices();
+    let first = deferred();
+    let stops: Array<ReturnType<typeof vi.fn>> = [];
+    let call = 0;
+
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+      async (_reader, videoElement, _constraints, isCancelled, onStream) => {
+        let index = call++;
+
+        if (index === 0) {
+          await first.promise;
+        }
+
+        stops[index] = attachOwnedStream(videoElement, isCancelled, onStream);
+      }
+    );
+
+    let { rerender, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "environment" }
+    });
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ facingMode: "user" }}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    );
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      first.resolve();
+      await vi.mocked(decodeBarcodeFromConstraints).mock.results[0]?.value;
+    });
+
+    expect(stops[0]).toHaveBeenCalledOnce();
+    expect(stops[1]).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -396,10 +473,15 @@ describe("BarcodeScanner", () => {
 
   it("hides the preview until a new stream is ready after constraints change", async () => {
     stubMediaDevices();
+    mockDecodeAttachingStream();
     let { rerender, container, onSuccess, onError } = renderScanner({
       constraints: { facingMode: "environment" }
     });
     let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
 
     Object.defineProperty(video, "readyState", {
       configurable: true,
@@ -416,6 +498,48 @@ describe("BarcodeScanner", () => {
       />
     );
 
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("ignores stale loaded data after constraints change", async () => {
+    stubMediaDevices();
+    mockDecodeAttachingStream();
+    let onLoad = vi.fn();
+    let { rerender, container, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "environment" },
+      onLoad
+    });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+    expect(onLoad).toHaveBeenCalledOnce();
+    expect(container.querySelector("svg")).toBeNull();
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ facingMode: "user" }}
+        onSuccess={onSuccess}
+        onError={onError}
+        onLoad={onLoad}
+      />
+    );
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledTimes(2);
+    });
+
+    video.srcObject = new MediaStream();
+    fireEvent.loadedData(video);
+
+    expect(onLoad).toHaveBeenCalledOnce();
     expect(container.querySelector("svg")).not.toBeNull();
   });
 
@@ -467,10 +591,16 @@ describe("BarcodeScanner", () => {
     expect(transform).toContain("rotate(90deg)");
   });
 
-  it("initializes the camera and calls onLoad when the video has enough data", () => {
+  it("initializes the camera and calls onLoad when the video has enough data", async () => {
+    stubMediaDevices();
+    mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
     let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
 
     Object.defineProperty(video, "readyState", {
       configurable: true,
@@ -484,10 +614,16 @@ describe("BarcodeScanner", () => {
     expect(video.parentElement?.style.display).toBe("block");
   });
 
-  it("does not call onLoad when the video is not ready", () => {
+  it("does not call onLoad when the video is not ready", async () => {
+    stubMediaDevices();
+    mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
     let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
 
     Object.defineProperty(video, "readyState", {
       configurable: true,
@@ -500,10 +636,16 @@ describe("BarcodeScanner", () => {
     expect(container.querySelector("svg")).not.toBeNull();
   });
 
-  it("ignores loaded data when readyState is missing", () => {
+  it("ignores loaded data when readyState is missing", async () => {
+    stubMediaDevices();
+    mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
     let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
 
     Object.defineProperty(video, "readyState", {
       configurable: true,
@@ -515,10 +657,16 @@ describe("BarcodeScanner", () => {
     expect(onLoad).not.toHaveBeenCalled();
   });
 
-  it("ignores loaded data when the event target is not a video", () => {
+  it("ignores loaded data when the event target is not a video", async () => {
+    stubMediaDevices();
+    mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
     let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
 
     Object.defineProperty(video, "readyState", {
       configurable: true,

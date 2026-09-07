@@ -29,7 +29,7 @@ export function BarcodeScanner({
   let [prevDoScan, setPrevDoScan] = useState(doScan);
   let codeReader = useMemo(() => new BrowserMultiFormatReader(), []);
   let videoElement = useRef<HTMLVideoElement>(null);
-  let sessionGeneration = useRef(0);
+  let activeStreamRef = useRef<MediaStream | null>(null);
   let onSuccessRef = useRef(onSuccess);
   let onErrorRef = useRef(onError);
   let onLoadRef = useRef(onLoad);
@@ -55,27 +55,24 @@ export function BarcodeScanner({
   useEffect(() => {
     let video = videoElement.current;
     let cancelled = false;
-    let generation = sessionGeneration.current;
 
     if (doScan && navigator?.mediaDevices) {
-      generation = ++sessionGeneration.current;
-
       async function decode() {
         try {
           let text = await decodeBarcodeFromConstraints(
             codeReader,
             videoElement,
-            stableConstraints
+            stableConstraints,
+            () => cancelled,
+            (stream) => {
+              if (!cancelled) activeStreamRef.current = stream;
+            }
           );
 
           if (!cancelled && text !== undefined) onSuccessRef.current(text);
         } catch (error) {
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- We know for sure that this is an Error
           if (!cancelled) onErrorRef.current(error as Error);
-        } finally {
-          if (cancelled && generation === sessionGeneration.current) {
-            stopVideoStream(video);
-          }
         }
       }
 
@@ -87,6 +84,7 @@ export function BarcodeScanner({
 
     return () => {
       cancelled = true;
+      activeStreamRef.current = null;
       stopVideoStream(video);
     };
   }, [doScan, stableConstraints, codeReader]);
@@ -100,6 +98,8 @@ export function BarcodeScanner({
         let eventTarget = nativeEvent.target;
 
         if (!(eventTarget instanceof HTMLVideoElement) || !eventTarget.readyState) return;
+
+        if (!activeStreamRef.current || eventTarget.srcObject !== activeStreamRef.current) return;
 
         if (eventTarget.readyState === eventTarget.HAVE_ENOUGH_DATA) {
           setIsCameraInitialized(true);
