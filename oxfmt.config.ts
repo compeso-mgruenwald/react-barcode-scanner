@@ -1,25 +1,23 @@
-import { defineConfig } from 'oxfmt';
+import { defineConfig, type OxfmtConfig } from "oxfmt";
 
-export default defineConfig({
-  singleQuote: true,
-  jsxSingleQuote: true,
-  semi: true,
-  trailingComma: 'all',
-  endOfLine: 'lf',
-  ignorePatterns: ['example/**', 'dist/**'],
+let config: OxfmtConfig = defineConfig<OxfmtConfig>({
+  trailingComma: "none",
+  ignorePatterns: ["example/**", "dist/**"],
   sortImports: {
     newlinesBetween: false,
     customGroups: [
       {
-        groupName: 'react',
-        elementNamePattern: ['react', 'react/**', 'react-*', 'react-*/**'],
-      },
+        groupName: "react",
+        elementNamePattern: ["react", "react/**", "react-*", "react-*/**"]
+      }
     ],
     groups: [
-      'react',
-      ['builtin', 'external'],
-      ['internal', 'parent', 'sibling', 'index'],
-      'unknown',
-    ],
-  },
+      "react",
+      ["builtin", "external"],
+      ["internal", "parent", "sibling", "index"],
+      "unknown"
+    ]
+  }
 });
+
+export default config;

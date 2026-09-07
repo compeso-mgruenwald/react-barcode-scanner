@@ -1,14 +1,77 @@
 {
   "language_servers": ["!fallow", "..."],
+  "lsp": {
+    "oxfmt": {
+      "initialization_options": {
+        "settings": { "run": "onSave" }
+      }
+    },
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "run": "onType",
+          "typeAware": true,
+          "unusedDisableDirectives": "deny"
+        }
+      }
+    }
+  },
   "languages": {
-    "TypeScript": {
-      "language_servers": ["!fallow", "!typescript-language-server", "vtsls", "..."]
+    "JavaScript": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }],
+      "language_servers": [
+        "!fallow",
+        "typescript-ls",
+        "!vtsls",
+        "!typescript-language-server",
+        "..."
+      ]
+    },
+    "JSON": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "JSONC": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "Markdown": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     },
     "TSX": {
-      "language_servers": ["!fallow", "!typescript-language-server", "vtsls", "..."]
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }],
+      "language_servers": [
+        "!fallow",
+        "typescript-ls",
+        "!vtsls",
+        "!typescript-language-server",
+        "..."
+      ]
     },
-    "JavaScript": {
-      "language_servers": ["!fallow", "!typescript-language-server", "vtsls", "..."]
+    "TypeScript": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }],
+      "language_servers": [
+        "!fallow",
+        "typescript-ls",
+        "!vtsls",
+        "!typescript-language-server",
+        "..."
+      ]
+    },
+    "YAML": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
     }
   }
 }

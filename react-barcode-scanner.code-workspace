@@ -1,8 +1,8 @@
 {
   "folders": [
     {
-      "path": ".",
-    },
+      "path": "."
+    }
   ],
   "settings": {
     "typescript.tsdk": "node_modules\\typescript\\lib",
@@ -11,13 +11,13 @@
     "editor.formatOnSave": true,
     "editor.formatOnType": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll": "explicit",
+      "source.fixAll": "explicit"
     },
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "files.eol": "\n",
     "files.associations": {
-      "*.yml": "yaml",
+      "*.yml": "yaml"
     },
     "diffEditor.ignoreTrimWhitespace": false,
     "scm.diffDecorationsIgnoreTrimWhitespace": "true",
@@ -27,11 +27,11 @@
     "eslint.useFlatConfig": true,
     "json.schemaDownload.enable": true,
     "[javascript][json][jsonc][typescriptreact][typescript][scss][css]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "[yaml]": {
-      "editor.defaultFormatter": "redhat.vscode-yaml",
-    },
+      "editor.defaultFormatter": "redhat.vscode-yaml"
+    }
   },
   "extensions": {
     "recommendations": [
@@ -42,7 +42,7 @@
       "yoavbls.pretty-ts-errors",
       "redhat.vscode-yaml",
       "mrmlnc.vscode-scss",
-      "wix.vscode-import-cost",
-    ],
-  },
+      "wix.vscode-import-cost"
+    ]
+  }
 }

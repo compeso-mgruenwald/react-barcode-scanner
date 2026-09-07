@@ -1,26 +1,17 @@
 {
   "compilerOptions": {
-    "rootDirs": ["src"],
-    "baseUrl": "src",
-    "module": "ESNext",
-    "target": "ESNext",
+    "target": "esnext",
     "lib": ["ESNext", "DOM"],
-    "strict": true,
-    "sourceMap": false,
-    "allowJs": false,
     "jsx": "react-jsx",
-    "moduleResolution": "Bundler",
-    "forceConsistentCasingInFileNames": true,
-    "strictNullChecks": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "isolatedDeclarations": true,
+    "declaration": true,
     "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
     "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "esModuleInterop": true,
-    "noEmit": true,
-    "resolveJsonModule": true
+    "noEmit": true
   },
-  "include": ["src/**/*", "*.config.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src", "*.config.ts"]
 }

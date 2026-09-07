@@ -1,24 +1,24 @@
-import type { RefObject } from 'react';
-import type { BrowserMultiFormatReader } from '@zxing/browser';
-import { ChecksumException, FormatException, NotFoundException } from '@zxing/library';
-import type { BarcodeScannerProps } from '../types';
+import type { RefObject } from "react";
+import type { BrowserMultiFormatReader } from "@zxing/browser";
+import { ChecksumException, FormatException, NotFoundException } from "@zxing/library";
+import type { BarcodeScannerProps } from "../types";
 
 type DecodeBarcodeFromConstraintsProps = Pick<
   BarcodeScannerProps,
-  'constraints' | 'onSuccess' | 'onError'
+  "constraints" | "onSuccess" | "onError"
 >;
 
 export async function decodeBarcodeFromConstraints(
   codeReader: BrowserMultiFormatReader,
   videoElement: RefObject<HTMLVideoElement | null>,
-  { constraints, onSuccess, onError }: DecodeBarcodeFromConstraintsProps,
+  { constraints, onSuccess, onError }: DecodeBarcodeFromConstraintsProps
 ): Promise<void> {
   if (!videoElement.current) return;
 
   try {
     const result = await codeReader.decodeOnceFromConstraints(
       { audio: false, video: constraints, preferCurrentTab: true },
-      videoElement.current,
+      videoElement.current
     );
 
     onSuccess(result.getText());
@@ -31,7 +31,7 @@ export async function decodeBarcodeFromConstraints(
         error instanceof FormatException
       )
     ) {
-      onError(error as Error);
+      onError(error instanceof Error ? error : new Error("Unknown barcode scan error"));
     }
   }
 }
