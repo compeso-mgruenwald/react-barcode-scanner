@@ -8,6 +8,8 @@ type DecodeBarcodeFromConstraintsProps = Pick<
   "constraints" | "onSuccess" | "onError"
 >;
 
+export const UNKNOWN_SCAN_ERROR_MESSAGE: string = "Unknown barcode scan error";
+
 export async function decodeBarcodeFromConstraints(
   codeReader: Pick<BrowserMultiFormatReader, "decodeOnceFromConstraints">,
   videoElement: RefObject<HTMLVideoElement | null>,
@@ -16,7 +18,7 @@ export async function decodeBarcodeFromConstraints(
   if (!videoElement.current) return;
 
   try {
-    const result = await codeReader.decodeOnceFromConstraints(
+    let result = await codeReader.decodeOnceFromConstraints(
       { audio: false, video: constraints, preferCurrentTab: true },
       videoElement.current
     );
@@ -31,7 +33,7 @@ export async function decodeBarcodeFromConstraints(
         error instanceof FormatException
       )
     ) {
-      onError(error instanceof Error ? error : new Error("Unknown barcode scan error"));
+      onError(error instanceof Error ? error : new Error(UNKNOWN_SCAN_ERROR_MESSAGE));
     }
   }
 }

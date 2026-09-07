@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactElement, ReactEventHandler, VideoHTMLAttributes } from "react";
+import type { ReactElement, VideoHTMLAttributes } from "react";
 import { FiCameraOff } from "react-icons/fi";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import type { BarcodeScannerProps as Props } from "../types";
-import { styles } from "./styles";
+import { STYLES } from "./styles";
 import { decodeBarcodeFromConstraints } from "./utils";
+
+const DEFAULT_CONSTRAINTS: MediaTrackConstraints = { facingMode: "environment" };
+export const MEDIA_DEVICES_ERROR_MESSAGE: string =
+  'Your browser has no support for the MediaDevices API. You could fix this by running "npm i webrtc-adapter"';
+const CAMERA_OFF_ICON_SIZE = 300;
 
 export function BarcodeScanner({
   doScan = true,
-  constraints = { facingMode: "environment" },
+  constraints = DEFAULT_CONSTRAINTS,
   onSuccess,
   onError,
   onLoad,
@@ -18,20 +23,17 @@ export function BarcodeScanner({
   videoStyle,
   videoProps: passedVideoProps
 }: Props): ReactElement {
-  const [isCameraInitialized, setIsCameraInitialized] = useState(false);
-  const codeReader = useMemo(() => new BrowserMultiFormatReader(), []);
-  const videoElement = useRef<HTMLVideoElement>(null);
-  const isShowingDisabledImage = !isCameraInitialized || !doScan;
+  let [isCameraInitialized, setIsCameraInitialized] = useState(false);
+  let codeReader = useMemo(() => new BrowserMultiFormatReader(), []);
+  let videoElement = useRef<HTMLVideoElement>(null);
+  let isShowingDisabledImage = !isCameraInitialized || !doScan;
 
   useEffect(() => {
     if (!doScan) return;
 
     if (!navigator?.mediaDevices) {
-      const message =
-        'Your browser has no support for the MediaDevices API. You could fix this by running "npm i webrtc-adapter"';
-
-      console.warn(`[ReactBarcodeScanner]: ${message}`);
-      onError(new Error(message));
+      console.warn(`[ReactBarcodeScanner]: ${MEDIA_DEVICES_ERROR_MESSAGE}`);
+      onError(new Error(MEDIA_DEVICES_ERROR_MESSAGE));
       return;
     }
 
@@ -42,25 +44,23 @@ export function BarcodeScanner({
     });
   }, [onSuccess, onError, doScan, codeReader, constraints]);
 
-  const videoProps = useMemo(() => {
-    const onLoadedData: ReactEventHandler<HTMLVideoElement> = ({ nativeEvent }) => {
-      const eventTarget = nativeEvent.target;
-
-      if (!(eventTarget instanceof HTMLVideoElement) || !eventTarget.readyState) return;
-
-      if (eventTarget.readyState === eventTarget.HAVE_ENOUGH_DATA) {
-        setIsCameraInitialized(true);
-        onLoad?.();
-      }
-    };
-
-    const defaultVideoProps: VideoHTMLAttributes<HTMLVideoElement> = {
+  let videoProps = useMemo(() => {
+    let defaultVideoProps: VideoHTMLAttributes<HTMLVideoElement> = {
       playsInline: true,
       disablePictureInPicture: true,
       muted: true,
-      onLoadedData,
+      onLoadedData: ({ nativeEvent }) => {
+        let eventTarget = nativeEvent.target;
+
+        if (!(eventTarget instanceof HTMLVideoElement) || !eventTarget.readyState) return;
+
+        if (eventTarget.readyState === eventTarget.HAVE_ENOUGH_DATA) {
+          setIsCameraInitialized(true);
+          onLoad?.();
+        }
+      },
       style: {
-        ...styles.video,
+        ...STYLES.video,
         ...videoStyle,
         transform: `${videoStyle?.transform ?? ""} ${constraints.facingMode === "user" ? "scaleX(-1)" : ""}`
       }
@@ -76,14 +76,14 @@ export function BarcodeScanner({
   return (
     <section style={containerStyle}>
       {isShowingDisabledImage && (
-        <div style={styles.barcodeScannerError}>
-          <FiCameraOff size={300} style={styles.barcodeScannerErrorSvg} />
+        <div style={STYLES.barcodeScannerError}>
+          <FiCameraOff size={CAMERA_OFF_ICON_SIZE} style={STYLES.barcodeScannerErrorSvg} />
         </div>
       )}
       <div
         style={{
-          ...styles.container,
-          ...(!isShowingDisabledImage ? styles.barcodeScannerVisible : {}),
+          ...STYLES.container,
+          ...(!isShowingDisabledImage ? STYLES.barcodeScannerVisible : {}),
           ...videoContainerStyle
         }}
       >

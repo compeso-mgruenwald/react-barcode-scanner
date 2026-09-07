@@ -8,6 +8,7 @@
 - [Compatibility](#compatibility)
 - [Installation](#installation)
   - [bun](#bun)
+  - [pnpm](#pnpm)
   - [yarn](#yarn)
   - [npm](#npm)
 - [Example Usage](#example-usage)
@@ -121,6 +122,21 @@ If you need to support older browsers, checkout [this guide](https://github.com/
 ## Issues
 
 Please, open an [issue](https://github.com/compeso-mgruenwald/react-barcode-scanner/issues) following one of the issues templates. We will do our best to fix them.
+
+## Contributing
+
+We build this with [bun](https://bun.sh) and [Vite+](https://viteplus.dev). The bun version is pinned under `devEngines` in `package.json`. fmt, lint, and pack settings are in `vite.config.ts`.
+
+```bash
+bun install
+bun run fmt
+bun run lint:fix
+bun run check
+```
+
+`bun run check` runs Vite+ check (fmt + lint), packs the library, then runs tests. Use [Conventional Commits](https://www.conventionalcommits.org/). Other scripts are in `package.json`.
+
+`example/` is a Vite app for trying the scanner in a browser. It has its own ESLint config. Leave it alone when you change `vite.config.ts`.
 
 ## License
 

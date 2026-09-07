@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-export const styles = {
+export const STYLES = {
   barcodeScannerError: {
     border: "8px #eee solid",
     borderRadius: "10px",

@@ -1,16 +1,13 @@
-import type { RefObject } from "react";
 import type { BrowserMultiFormatReader } from "@zxing/browser";
 import { ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { decodeBarcodeFromConstraints } from "./utils";
+import { decodeBarcodeFromConstraints, UNKNOWN_SCAN_ERROR_MESSAGE } from "./utils";
 
-function videoRef(current: HTMLVideoElement | null): RefObject<HTMLVideoElement | null> {
+function videoRef(current: HTMLVideoElement | null) {
   return { current };
 }
 
-function reader(
-  decodeOnceFromConstraints: BrowserMultiFormatReader["decodeOnceFromConstraints"]
-): Pick<BrowserMultiFormatReader, "decodeOnceFromConstraints"> {
+function reader(decodeOnceFromConstraints: BrowserMultiFormatReader["decodeOnceFromConstraints"]) {
   return { decodeOnceFromConstraints };
 }
 
@@ -115,7 +112,7 @@ describe("decodeBarcodeFromConstraints", () => {
     expect(onSuccess).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledOnce();
     expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
-    expect(onError.mock.calls[0]?.[0]?.message).toBe("Unknown barcode scan error");
+    expect(onError.mock.calls[0]?.[0]?.message).toBe(UNKNOWN_SCAN_ERROR_MESSAGE);
   });
 
   it("ignores falsy thrown values", async () => {

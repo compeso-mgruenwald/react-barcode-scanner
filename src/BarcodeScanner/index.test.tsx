@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { BarcodeScanner } from "./index";
+import { BarcodeScanner, MEDIA_DEVICES_ERROR_MESSAGE } from "./index";
 import { decodeBarcodeFromConstraints } from "./utils";
 
 vi.mock("@zxing/browser", () => {
@@ -19,9 +19,6 @@ vi.mock("./utils", () => {
     decodeBarcodeFromConstraints: vi.fn(() => Promise.resolve())
   };
 });
-
-let mediaDevicesMessage =
-  'Your browser has no support for the MediaDevices API. You could fix this by running "npm i webrtc-adapter"';
 
 function Viewfinder() {
   return <div data-testid="viewfinder">finder</div>;
@@ -41,7 +38,7 @@ function clearMediaDevices() {
   });
 }
 
-function videoFrom(container: HTMLElement): HTMLVideoElement {
+function videoFrom(container: HTMLElement) {
   let video = container.querySelector("video");
 
   if (!(video instanceof HTMLVideoElement)) {
@@ -92,10 +89,12 @@ describe("BarcodeScanner", () => {
   it("warns and calls onError when MediaDevices is missing", () => {
     let { onError } = renderScanner();
 
-    expect(console.warn).toHaveBeenCalledWith(`[ReactBarcodeScanner]: ${mediaDevicesMessage}`);
+    expect(console.warn).toHaveBeenCalledWith(
+      `[ReactBarcodeScanner]: ${MEDIA_DEVICES_ERROR_MESSAGE}`
+    );
     expect(onError).toHaveBeenCalledOnce();
     expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
-    expect(onError.mock.calls[0]?.[0]?.message).toBe(mediaDevicesMessage);
+    expect(onError.mock.calls[0]?.[0]?.message).toBe(MEDIA_DEVICES_ERROR_MESSAGE);
     expect(decodeBarcodeFromConstraints).not.toHaveBeenCalled();
   });
 

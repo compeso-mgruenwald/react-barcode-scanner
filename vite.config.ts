@@ -58,8 +58,22 @@ let config: UserConfig = defineConfig({
       reportUnusedDisableDirectives: "deny",
       respectEslintDisableDirectives: false
     },
+    overrides: [
+      {
+        files: ["*.config.ts"],
+        rules: {
+          "import/no-default-export": "off"
+        }
+      }
+    ],
     rules: {
       "react/react-in-jsx-scope": "off",
+      "prefer-const": "off",
+      "func-style": ["error", "declaration"],
+      "prefer-arrow-callback": "error",
+      "typescript/explicit-function-return-type": "off",
+      "import/no-default-export": "error",
+      "import/prefer-default-export": "off",
       "no-console": ["error", { allow: ["warn", "error", "info"] }],
       "no-unused-vars": [
         "error",
