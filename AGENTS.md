@@ -12,6 +12,6 @@ If a tool overwrites this file, restore it with `git restore -- AGENTS.md` (that
 
 When the main work is done — not on follow-up tweaks:
 
-- Suggest a Conventional Commits message that would pass `commitlint.config.js`. The human creates the commit. Offer it once for the pile.
+- Suggest a Conventional Commits message that would pass `commitlint.config.ts`. The human creates the commit. Offer it once for the pile.
   Prefer a subject plus a body unless the change is one short sentence. Subject is `type: description` (optional scope). Body is an unordered markdown list; each item stays on one line.
 - Run `check:agents` and `test` concurrently (`check:agents` omits `test` so they can overlap). Until those scripts exist, run the checks that already exist.

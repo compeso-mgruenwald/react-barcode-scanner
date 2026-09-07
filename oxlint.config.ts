@@ -13,7 +13,7 @@ let config: OxlintConfig = defineConfig<OxlintConfig>({
   ignorePatterns: ["example", "dist"],
   settings: {
     react: {
-      version: "19.1.0"
+      version: "19.2.8"
     }
   },
   options: {
