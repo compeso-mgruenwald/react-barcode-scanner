@@ -1,9 +1,25 @@
 import { defineConfig, type UserConfig } from "vite-plus";
 
 let config: UserConfig = defineConfig({
+  test: {
+    environment: "jsdom",
+    include: ["src/**/*.test.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/types/**"],
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100
+      }
+    }
+  },
   fmt: {
     trailingComma: "none",
-    ignorePatterns: ["example/**", "dist/**"],
+    ignorePatterns: ["example/**", "dist/**", "coverage/**"],
     sortImports: {
       newlinesBetween: false,
       customGroups: [
@@ -30,7 +46,7 @@ let config: UserConfig = defineConfig({
     env: {
       browser: true
     },
-    ignorePatterns: ["example", "dist"],
+    ignorePatterns: ["example", "dist", "coverage"],
     settings: {
       react: {
         version: "19.2.8"

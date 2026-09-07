@@ -9,7 +9,7 @@ type DecodeBarcodeFromConstraintsProps = Pick<
 >;
 
 export async function decodeBarcodeFromConstraints(
-  codeReader: BrowserMultiFormatReader,
+  codeReader: Pick<BrowserMultiFormatReader, "decodeOnceFromConstraints">,
   videoElement: RefObject<HTMLVideoElement | null>,
   { constraints, onSuccess, onError }: DecodeBarcodeFromConstraintsProps
 ): Promise<void> {
