@@ -136,7 +136,7 @@ bun run check
 
 `bun run check` runs Vite+ check (fmt + lint), packs the library, then runs tests. Use [Conventional Commits](https://www.conventionalcommits.org/). Other scripts are in `package.json`.
 
-`example/` is a Vite app for trying the scanner in a browser. It has its own ESLint config. Leave it alone when you change `vite.config.ts`.
+`example/` is a Vite+ app for trying the scanner in a browser. It has its own `vite.config.ts`. Leave it alone when you change the library config.
 
 ## License
 
