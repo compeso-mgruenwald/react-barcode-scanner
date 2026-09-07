@@ -1,8 +1,8 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
-import { BarcodeScanner as ReactBarcodeScanner } from '@thewirv/react-barcode-scanner';
-import Viewfinder from './Viewfinder';
-import { useComponentDimensions } from './useComponentDimensions';
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { BarcodeScanner as ReactBarcodeScanner } from "@thewirv/react-barcode-scanner";
+import { useComponentDimensions } from "./useComponentDimensions";
+import { Viewfinder } from "./Viewfinder";
 
 interface Props {
   description?: ReactNode;
@@ -10,19 +10,19 @@ interface Props {
   onError?: () => void;
 }
 
-function BarcodeScanner({ description, onScan, onError }: Props) {
-  const [doScan, setDoScan] = useState(true);
-  const [error, setError] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { width: containerWidth } = useComponentDimensions(containerRef);
+function BarcodeScannerComponent({ description, onScan, onError }: Props) {
+  let [doScan, setDoScan] = useState(true);
+  let [error, setError] = useState("");
+  let containerRef = useRef<HTMLDivElement>(null);
+  let { width: containerWidth } = useComponentDimensions(containerRef);
 
-  const videoStyle = useMemo(
+  let videoStyle = useMemo(
     () => ({
       width: 500,
       height: 375,
-      margin: '0 auto',
+      margin: "0 auto"
     }),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -47,17 +47,17 @@ function BarcodeScanner({ description, onScan, onError }: Props) {
             setDoScan(false);
             onScan(text);
           }}
-          onError={(error) => {
-            if (!error) {
+          onError={(scanError) => {
+            if (!scanError) {
               return;
             }
 
-            let errorMessage = '';
+            let errorMessage = "";
 
-            if (error.name.includes('NotFoundError')) {
-              errorMessage = 'Camera not found!';
-            } else if (error.name.includes('IndexSizeError')) {
-              errorMessage = 'Scanner error';
+            if (scanError.name.includes("NotFoundError")) {
+              errorMessage = "Camera not found!";
+            } else if (scanError.name.includes("IndexSizeError")) {
+              errorMessage = "Scanner error";
             }
 
             setDoScan(false);
@@ -66,7 +66,9 @@ function BarcodeScanner({ description, onScan, onError }: Props) {
           }}
           videoContainerStyle={{ ...videoStyle, paddingTop: 0 }}
           videoStyle={videoStyle}
-          Viewfinder={() => <Viewfinder containerWidth={containerWidth} containerHeight={videoStyle.height} />}
+          Viewfinder={() => (
+            <Viewfinder containerWidth={containerWidth} containerHeight={videoStyle.height} />
+          )}
         />
       </div>
       <button onMouseDown={() => setDoScan((prev) => !prev)} style={{ marginTop: 12 }}>
@@ -76,4 +78,4 @@ function BarcodeScanner({ description, onScan, onError }: Props) {
   );
 }
 
-export default memo(BarcodeScanner);
+export const BarcodeScanner = memo(BarcodeScannerComponent);

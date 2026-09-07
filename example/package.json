@@ -1,36 +1,39 @@
 {
   "name": "example",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview",
+    "fmt": "vp fmt",
+    "lint:fix": "vp lint --fix",
+    "lint:incl-warnings": "vp lint",
+    "vp-check": "vp check",
+    "check": "bun run vp-check && bun run build"
   },
   "dependencies": {
     "@thewirv/react-barcode-scanner": "link:@thewirv/react-barcode-scanner",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.29.0",
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react-swc": "^3.10.0",
-    "eslint": "^9.29.0",
-    "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-prettier": "^5.4.1",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "eslint-plugin-unused-imports": "^4.1.4",
-    "globals": "^16.2.0",
-    "prettier": "^3.5.3",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.34.1",
-    "vite": "^6.3.5"
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.3.0",
+    "vite-plus": "^0.3.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.2",
+      "onFail": "download"
+    }
   }
 }
