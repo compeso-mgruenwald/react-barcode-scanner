@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
     "rootDirs": ["src"],
     "baseUrl": "src",
     "module": "ESNext",
@@ -14,13 +13,12 @@
     "forceConsistentCasingInFileNames": true,
     "strictNullChecks": true,
     "noUnusedLocals": true,
-    "declaration": true,
-    "declarationDir": "dist/types",
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
-    "noEmit": false,
+    "noEmit": true,
     "resolveJsonModule": true
   },
   "include": ["src/**/*", "*.config.ts"],

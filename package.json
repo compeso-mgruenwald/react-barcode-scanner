@@ -26,7 +26,6 @@
     "type": "git",
     "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
   },
-  "source": "./src/index.ts",
   "files": [
     "dist",
     "LICENSE",
@@ -34,34 +33,21 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.min.cjs",
-  "module": "./dist/index.min.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "development": {
-        "import": "./dist/index.js",
-        "require": "./dist/index.cjs"
-      },
-      "production": {
-        "import": "./dist/index.min.js",
-        "require": "./dist/index.min.cjs"
-      },
-      "default": "./dist/index.min.cjs",
-      "types": "./dist/index.d.ts",
-      "source": "./src/index.ts"
-    },
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "bun run rimraf dist -I && bun run rollup -c rollup.config.js --configPlugin @rollup/plugin-typescript && bun run rimraf ./dist/types",
-    "prepublish": "bun run build",
+    "build": "tsdown",
+    "prepublishOnly": "bun run build",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "lint": "bun run eslint --quiet --fix 'src/**'",
+    "typecheck": "tsc --noEmit",
     "test": "true",
     "prepare": "bun run husky"
   },
@@ -70,10 +56,9 @@
     "@zxing/library": "^0.21.3"
   },
   "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^12.1.2",
     "@types/react": "^19.1.8",
     "eslint": "^9.29.0",
     "eslint-plugin-react": "^7.37.5",
@@ -82,15 +67,14 @@
     "globals": "^16.2.0",
     "husky": "^9.1.7",
     "oxfmt": "^0.66.0",
+    "publint": "^0.3.24",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
-    "rimraf": "^6.0.1",
-    "rollup": "^4.43.0",
-    "rollup-plugin-dts": "^6.2.1",
-    "tslib": "^2.8.1",
+    "tsdown": "^0.23.0",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.34.1"
+    "typescript-eslint": "^8.34.1",
+    "unplugin-unused": "^0.6.0"
   },
   "peerDependencies": {
     "react": "^16.8.0 || 17.x || 18.x || 19.x",
