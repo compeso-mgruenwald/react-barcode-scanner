@@ -1,11 +1,13 @@
 import type { ComponentProps } from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { BarcodeScanner, MEDIA_DEVICES_ERROR_MESSAGE } from "./index";
 import { decodeBarcodeFromConstraints } from "./utils";
 
-vi.mock("@zxing/browser", () => {
+vi.mock("@zxing/browser", async (importOriginal) => {
+  let actual = await importOriginal<typeof import("@zxing/browser")>();
   return {
+    ...actual,
     BrowserMultiFormatReader: class BrowserMultiFormatReader {
       decodeOnceFromConstraints() {
         return Promise.resolve({ getText: () => "" });
@@ -14,8 +16,10 @@ vi.mock("@zxing/browser", () => {
   };
 });
 
-vi.mock("./utils", () => {
+vi.mock("./utils", async (importOriginal) => {
+  let actual = await importOriginal<typeof import("./utils")>();
   return {
+    ...actual,
     decodeBarcodeFromConstraints: vi.fn(() => Promise.resolve())
   };
 });
@@ -46,6 +50,40 @@ function videoFrom(container: HTMLElement) {
   }
 
   return video;
+}
+
+function attachStoppableStream(video: HTMLVideoElement, stop: ReturnType<typeof vi.fn>) {
+  let stream = new MediaStream();
+  Object.defineProperty(stream, "getTracks", {
+    configurable: true,
+    value: () => [{ stop }]
+  });
+  video.srcObject = stream;
+}
+
+function mockDecodeAttachingStream() {
+  let stops: Array<ReturnType<typeof vi.fn>> = [];
+
+  vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async (_reader, videoElement) => {
+    let stop = vi.fn();
+    stops.push(stop);
+
+    if (videoElement.current) {
+      attachStoppableStream(videoElement.current, stop);
+    }
+  });
+
+  return { stops };
+}
+
+function deferred<T = void>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  let promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
 }
 
 function renderScanner(
@@ -101,16 +139,35 @@ describe("BarcodeScanner", () => {
   it("starts decoding when scanning is enabled and MediaDevices exists", async () => {
     stubMediaDevices();
     let constraints = { facingMode: "environment" as const };
+    vi.mocked(decodeBarcodeFromConstraints).mockResolvedValue("scanned");
     let { onSuccess, onError } = renderScanner({ constraints });
 
     await waitFor(() => {
       expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
     });
 
-    let [, videoElement, options] = vi.mocked(decodeBarcodeFromConstraints).mock.calls[0] ?? [];
+    let [, videoElement, passedConstraints] =
+      vi.mocked(decodeBarcodeFromConstraints).mock.calls[0] ?? [];
 
     expect(videoElement?.current).toBeInstanceOf(HTMLVideoElement);
-    expect(options).toEqual({ constraints, onSuccess, onError });
+    expect(passedConstraints).toEqual(constraints);
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith("scanned");
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("forwards a decode rejection to onError", async () => {
+    stubMediaDevices();
+    let error = new Error("boom");
+    vi.mocked(decodeBarcodeFromConstraints).mockRejectedValue(error);
+    let { onSuccess, onError } = renderScanner();
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(error);
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("does not decode when doScan is false even if MediaDevices exists", () => {
@@ -118,6 +175,248 @@ describe("BarcodeScanner", () => {
     renderScanner({ doScan: false });
 
     expect(decodeBarcodeFromConstraints).not.toHaveBeenCalled();
+  });
+
+  it("does not restart decode when constraints are omitted and callbacks are inline", async () => {
+    stubMediaDevices();
+    let { rerender } = render(
+      <BarcodeScanner onSuccess={() => {}} onError={() => {}} onLoad={() => {}} />
+    );
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(<BarcodeScanner onSuccess={() => {}} onError={() => {}} onLoad={() => {}} />);
+
+    expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+  });
+
+  it("forwards empty decoded text to onSuccess", async () => {
+    stubMediaDevices();
+    vi.mocked(decodeBarcodeFromConstraints).mockResolvedValue("");
+    let { onSuccess, onError } = renderScanner();
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith("");
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("does not restart decode when constraint values are equal regardless of key order", async () => {
+    stubMediaDevices();
+    let { rerender, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "environment", width: 1280 }
+    });
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ width: 1280, facingMode: "environment" }}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    );
+
+    expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+  });
+
+  it("starts a new session when constraint values change", async () => {
+    stubMediaDevices();
+    let { stops } = mockDecodeAttachingStream();
+    let { rerender, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "environment" }
+    });
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ facingMode: "user" }}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    );
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledTimes(2);
+    });
+
+    expect(stops[0]).toHaveBeenCalledOnce();
+    expect(stops[1]).not.toHaveBeenCalled();
+  });
+
+  it("stops the camera when doScan becomes false", async () => {
+    stubMediaDevices();
+    let { stops } = mockDecodeAttachingStream();
+    let { rerender, onSuccess, onError } = renderScanner();
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(<BarcodeScanner doScan={false} onSuccess={onSuccess} onError={onError} />);
+
+    expect(stops[0]).toHaveBeenCalledOnce();
+  });
+
+  it("stops the camera on unmount", async () => {
+    stubMediaDevices();
+    let { stops } = mockDecodeAttachingStream();
+    let { unmount } = renderScanner();
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    unmount();
+
+    expect(stops[0]).toHaveBeenCalledOnce();
+  });
+
+  it("does not stop the successor session when a cancelled decode settles", async () => {
+    stubMediaDevices();
+    let first = deferred();
+    let stops: Array<ReturnType<typeof vi.fn>> = [];
+    let call = 0;
+
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async (_reader, videoElement) => {
+      let stop = vi.fn();
+      stops.push(stop);
+
+      if (videoElement.current) {
+        attachStoppableStream(videoElement.current, stop);
+      }
+
+      if (call++ === 0) {
+        await first.promise;
+      }
+    });
+
+    let { rerender, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "environment" }
+    });
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ facingMode: "user" }}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    );
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      first.resolve();
+      await vi.mocked(decodeBarcodeFromConstraints).mock.results[0]?.value;
+    });
+
+    expect(stops[1]).not.toHaveBeenCalled();
+  });
+
+  it("stops tracks that attach after doScan becomes false", async () => {
+    stubMediaDevices();
+    let attach = deferred();
+    let stop = vi.fn();
+
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async (_reader, videoElement) => {
+      await attach.promise;
+
+      if (videoElement.current) {
+        attachStoppableStream(videoElement.current, stop);
+      }
+    });
+
+    let { rerender, onSuccess, onError } = renderScanner();
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    rerender(<BarcodeScanner doScan={false} onSuccess={onSuccess} onError={onError} />);
+
+    await act(async () => {
+      attach.resolve();
+      await vi.mocked(decodeBarcodeFromConstraints).mock.results[0]?.value;
+    });
+
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    {
+      name: "resolves",
+      settle: (finish: ReturnType<typeof deferred<string>>) => {
+        finish.resolve("late");
+      }
+    },
+    {
+      name: "rejects",
+      settle: (finish: ReturnType<typeof deferred<string>>) => {
+        finish.reject(new Error("late"));
+      }
+    }
+  ] as const)(
+    "does not call scan callbacks after unmount when decode $name",
+    async ({ settle }) => {
+      stubMediaDevices();
+      let finish = deferred<string>();
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async () => finish.promise);
+
+      let { unmount, onSuccess, onError } = renderScanner();
+
+      await waitFor(() => {
+        expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      });
+
+      unmount();
+
+      await act(async () => {
+        settle(finish);
+        await vi.mocked(decodeBarcodeFromConstraints).mock.results[0]?.value.catch(() => {});
+      });
+
+      expect(onSuccess).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+    }
+  );
+
+  it("hides the preview until a new stream is ready after constraints change", async () => {
+    stubMediaDevices();
+    let { rerender, container, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "environment" }
+    });
+    let video = videoFrom(container);
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+    expect(container.querySelector("svg")).toBeNull();
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ facingMode: "user" }}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    );
+
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   it("renders a Viewfinder and applies container styles", () => {

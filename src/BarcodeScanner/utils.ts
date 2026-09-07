@@ -1,21 +1,30 @@
 import type { RefObject } from "react";
+import { BrowserCodeReader } from "@zxing/browser";
 import type { BrowserMultiFormatReader } from "@zxing/browser";
 import { ChecksumException, FormatException, NotFoundException } from "@zxing/library";
-import type { BarcodeScannerProps } from "../types";
-
-type DecodeBarcodeFromConstraintsProps = Pick<
-  BarcodeScannerProps,
-  "constraints" | "onSuccess" | "onError"
->;
 
 export const UNKNOWN_SCAN_ERROR_MESSAGE: string = "Unknown barcode scan error";
+
+export function stopVideoStream(video: HTMLVideoElement | null): void {
+  if (!video) return;
+
+  let stream = video.srcObject;
+
+  if (stream instanceof MediaStream) {
+    for (let track of stream.getTracks()) {
+      track.stop();
+    }
+  }
+
+  BrowserCodeReader.cleanVideoSource(video);
+}
 
 export async function decodeBarcodeFromConstraints(
   codeReader: Pick<BrowserMultiFormatReader, "decodeOnceFromConstraints">,
   videoElement: RefObject<HTMLVideoElement | null>,
-  { constraints, onSuccess, onError }: DecodeBarcodeFromConstraintsProps
-): Promise<void> {
-  if (!videoElement.current) return;
+  constraints: MediaTrackConstraints
+): Promise<string | undefined> {
+  if (!videoElement.current) return undefined;
 
   try {
     let result = await codeReader.decodeOnceFromConstraints(
@@ -23,7 +32,7 @@ export async function decodeBarcodeFromConstraints(
       videoElement.current
     );
 
-    onSuccess(result.getText());
+    return result.getText();
   } catch (error) {
     if (
       error &&
@@ -33,7 +42,9 @@ export async function decodeBarcodeFromConstraints(
         error instanceof FormatException
       )
     ) {
-      onError(error instanceof Error ? error : new Error(UNKNOWN_SCAN_ERROR_MESSAGE));
+      throw error instanceof Error ? error : new Error(UNKNOWN_SCAN_ERROR_MESSAGE);
     }
+
+    return undefined;
   }
 }

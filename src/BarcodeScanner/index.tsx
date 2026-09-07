@@ -3,8 +3,9 @@ import type { ReactElement, VideoHTMLAttributes } from "react";
 import { FiCameraOff } from "react-icons/fi";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import type { BarcodeScannerProps as Props } from "../types";
+import { deepEqual } from "./deepEqual";
 import { STYLES } from "./styles";
-import { decodeBarcodeFromConstraints } from "./utils";
+import { decodeBarcodeFromConstraints, stopVideoStream } from "./utils";
 
 const DEFAULT_CONSTRAINTS: MediaTrackConstraints = { facingMode: "environment" };
 export const MEDIA_DEVICES_ERROR_MESSAGE: string =
@@ -24,25 +25,71 @@ export function BarcodeScanner({
   videoProps: passedVideoProps
 }: Props): ReactElement {
   let [isCameraInitialized, setIsCameraInitialized] = useState(false);
+  let [stableConstraints, setStableConstraints] = useState(constraints);
+  let [prevDoScan, setPrevDoScan] = useState(doScan);
   let codeReader = useMemo(() => new BrowserMultiFormatReader(), []);
   let videoElement = useRef<HTMLVideoElement>(null);
+  let sessionGeneration = useRef(0);
+  let onSuccessRef = useRef(onSuccess);
+  let onErrorRef = useRef(onError);
+  let onLoadRef = useRef(onLoad);
+  let constraintsChanged = !deepEqual(stableConstraints, constraints);
+
+  // oxlint-disable react/refs -- Latest callbacks must be visible to an in-flight decode without restarting the camera session
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+  onLoadRef.current = onLoad;
+  // oxlint-enable react/refs
+
+  if (constraintsChanged) {
+    setStableConstraints(constraints);
+  }
+
+  if (constraintsChanged || prevDoScan !== doScan) {
+    setPrevDoScan(doScan);
+    setIsCameraInitialized(false);
+  }
+
   let isShowingDisabledImage = !isCameraInitialized || !doScan;
 
   useEffect(() => {
-    if (!doScan) return;
+    let video = videoElement.current;
+    let cancelled = false;
+    let generation = sessionGeneration.current;
 
-    if (!navigator?.mediaDevices) {
+    if (doScan && navigator?.mediaDevices) {
+      generation = ++sessionGeneration.current;
+
+      async function decode() {
+        try {
+          let text = await decodeBarcodeFromConstraints(
+            codeReader,
+            videoElement,
+            stableConstraints
+          );
+
+          if (!cancelled && text !== undefined) onSuccessRef.current(text);
+        } catch (error) {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- We know for sure that this is an Error
+          if (!cancelled) onErrorRef.current(error as Error);
+        } finally {
+          if (cancelled && generation === sessionGeneration.current) {
+            stopVideoStream(video);
+          }
+        }
+      }
+
+      void decode();
+    } else if (doScan) {
       console.warn(`[ReactBarcodeScanner]: ${MEDIA_DEVICES_ERROR_MESSAGE}`);
-      onError(new Error(MEDIA_DEVICES_ERROR_MESSAGE));
-      return;
+      onErrorRef.current(new Error(MEDIA_DEVICES_ERROR_MESSAGE));
     }
 
-    void decodeBarcodeFromConstraints(codeReader, videoElement, {
-      constraints,
-      onSuccess,
-      onError
-    });
-  }, [onSuccess, onError, doScan, codeReader, constraints]);
+    return () => {
+      cancelled = true;
+      stopVideoStream(video);
+    };
+  }, [doScan, stableConstraints, codeReader]);
 
   let videoProps = useMemo(() => {
     let defaultVideoProps: VideoHTMLAttributes<HTMLVideoElement> = {
@@ -56,13 +103,13 @@ export function BarcodeScanner({
 
         if (eventTarget.readyState === eventTarget.HAVE_ENOUGH_DATA) {
           setIsCameraInitialized(true);
-          onLoad?.();
+          onLoadRef.current?.();
         }
       },
       style: {
         ...STYLES.video,
         ...videoStyle,
-        transform: `${videoStyle?.transform ?? ""} ${constraints.facingMode === "user" ? "scaleX(-1)" : ""}`
+        transform: `${videoStyle?.transform ?? ""} ${stableConstraints.facingMode === "user" ? "scaleX(-1)" : ""}`
       }
     };
 
@@ -70,8 +117,9 @@ export function BarcodeScanner({
 
     if (typeof passedVideoProps !== "function") return passedVideoProps;
 
+    // oxlint-disable-next-line react/refs -- onLoadedData reads onLoadRef; passing defaults to videoProps is not a render-time ref read
     return passedVideoProps(defaultVideoProps);
-  }, [constraints.facingMode, onLoad, passedVideoProps, videoStyle]);
+  }, [stableConstraints.facingMode, passedVideoProps, videoStyle]);
 
   return (
     <section style={containerStyle}>

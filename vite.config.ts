@@ -1,8 +1,10 @@
-import { defineConfig, type UserConfig } from "vite-plus";
+import { defineConfig } from "vite-plus";
+import type { UserConfig } from "vite-plus";
 
 let config: UserConfig = defineConfig({
   test: {
     environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
@@ -19,7 +21,7 @@ let config: UserConfig = defineConfig({
   },
   fmt: {
     trailingComma: "none",
-    ignorePatterns: ["example/**", "dist/**", "coverage/**"],
+    ignorePatterns: ["example/**", "dist/**", "coverage/**", ".cursor/**"],
     sortImports: {
       newlinesBetween: false,
       customGroups: [

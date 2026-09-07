@@ -1,7 +1,9 @@
 import type { BrowserMultiFormatReader } from "@zxing/browser";
 import { ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { decodeBarcodeFromConstraints, UNKNOWN_SCAN_ERROR_MESSAGE } from "./utils";
+import { decodeBarcodeFromConstraints, stopVideoStream, UNKNOWN_SCAN_ERROR_MESSAGE } from "./utils";
+
+const CONSTRAINTS: MediaTrackConstraints = { facingMode: "environment" };
 
 function videoRef(current: HTMLVideoElement | null) {
   return { current };
@@ -14,41 +16,42 @@ function reader(decodeOnceFromConstraints: BrowserMultiFormatReader["decodeOnceF
 describe("decodeBarcodeFromConstraints", () => {
   it("returns without decoding when the video element is missing", async () => {
     let decodeOnceFromConstraints = vi.fn();
-    let onSuccess = vi.fn();
-    let onError = vi.fn();
 
-    await decodeBarcodeFromConstraints(reader(decodeOnceFromConstraints), videoRef(null), {
-      constraints: { facingMode: "environment" },
-      onSuccess,
-      onError
-    });
+    await expect(
+      decodeBarcodeFromConstraints(reader(decodeOnceFromConstraints), videoRef(null), CONSTRAINTS)
+    ).resolves.toBeUndefined();
 
     expect(decodeOnceFromConstraints).not.toHaveBeenCalled();
-    expect(onSuccess).not.toHaveBeenCalled();
-    expect(onError).not.toHaveBeenCalled();
   });
 
-  it("calls onSuccess with the decoded text", async () => {
+  it("returns the decoded text", async () => {
     let video = document.createElement("video");
-    let constraints = { facingMode: "environment" };
     let decodeOnceFromConstraints = vi.fn().mockResolvedValue({
       getText: () => "scanned-value"
     });
-    let onSuccess = vi.fn();
-    let onError = vi.fn();
 
-    await decodeBarcodeFromConstraints(reader(decodeOnceFromConstraints), videoRef(video), {
-      constraints,
-      onSuccess,
-      onError
-    });
+    await expect(
+      decodeBarcodeFromConstraints(reader(decodeOnceFromConstraints), videoRef(video), CONSTRAINTS)
+    ).resolves.toBe("scanned-value");
 
     expect(decodeOnceFromConstraints).toHaveBeenCalledWith(
-      { audio: false, video: constraints, preferCurrentTab: true },
+      { audio: false, video: CONSTRAINTS, preferCurrentTab: true },
       video
     );
-    expect(onSuccess).toHaveBeenCalledWith("scanned-value");
-    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("returns empty decoded text", async () => {
+    let decodeOnceFromConstraints = vi.fn().mockResolvedValue({
+      getText: () => ""
+    });
+
+    await expect(
+      decodeBarcodeFromConstraints(
+        reader(decodeOnceFromConstraints),
+        videoRef(document.createElement("video")),
+        CONSTRAINTS
+      )
+    ).resolves.toBe("");
   });
 
   it.each([
@@ -57,80 +60,81 @@ describe("decodeBarcodeFromConstraints", () => {
     ["FormatException", new FormatException()]
   ] as const)("swallows %s", async (_name, error) => {
     let decodeOnceFromConstraints = vi.fn().mockRejectedValue(error);
-    let onSuccess = vi.fn();
-    let onError = vi.fn();
 
-    await decodeBarcodeFromConstraints(
-      reader(decodeOnceFromConstraints),
-      videoRef(document.createElement("video")),
-      {
-        constraints: { facingMode: "environment" },
-        onSuccess,
-        onError
-      }
-    );
-
-    expect(onSuccess).not.toHaveBeenCalled();
-    expect(onError).not.toHaveBeenCalled();
+    await expect(
+      decodeBarcodeFromConstraints(
+        reader(decodeOnceFromConstraints),
+        videoRef(document.createElement("video")),
+        CONSTRAINTS
+      )
+    ).resolves.toBeUndefined();
   });
 
-  it("forwards other Error instances to onError", async () => {
+  it("rethrows other Error instances", async () => {
     let error = new Error("camera failed");
     let decodeOnceFromConstraints = vi.fn().mockRejectedValue(error);
-    let onSuccess = vi.fn();
-    let onError = vi.fn();
 
-    await decodeBarcodeFromConstraints(
-      reader(decodeOnceFromConstraints),
-      videoRef(document.createElement("video")),
-      {
-        constraints: { facingMode: "environment" },
-        onSuccess,
-        onError
-      }
-    );
-
-    expect(onSuccess).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledWith(error);
+    await expect(
+      decodeBarcodeFromConstraints(
+        reader(decodeOnceFromConstraints),
+        videoRef(document.createElement("video")),
+        CONSTRAINTS
+      )
+    ).rejects.toBe(error);
   });
 
   it("wraps non-Error throws as an unknown scan error", async () => {
     let decodeOnceFromConstraints = vi.fn().mockRejectedValue("boom");
-    let onSuccess = vi.fn();
-    let onError = vi.fn();
 
-    await decodeBarcodeFromConstraints(
-      reader(decodeOnceFromConstraints),
-      videoRef(document.createElement("video")),
-      {
-        constraints: { facingMode: "environment" },
-        onSuccess,
-        onError
-      }
-    );
-
-    expect(onSuccess).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledOnce();
-    expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
-    expect(onError.mock.calls[0]?.[0]?.message).toBe(UNKNOWN_SCAN_ERROR_MESSAGE);
+    await expect(
+      decodeBarcodeFromConstraints(
+        reader(decodeOnceFromConstraints),
+        videoRef(document.createElement("video")),
+        CONSTRAINTS
+      )
+    ).rejects.toThrow(UNKNOWN_SCAN_ERROR_MESSAGE);
   });
 
   it("ignores falsy thrown values", async () => {
     let decodeOnceFromConstraints = vi.fn().mockRejectedValue(null);
-    let onSuccess = vi.fn();
-    let onError = vi.fn();
 
-    await decodeBarcodeFromConstraints(
-      reader(decodeOnceFromConstraints),
-      videoRef(document.createElement("video")),
-      {
-        constraints: { facingMode: "environment" },
-        onSuccess,
-        onError
-      }
-    );
+    await expect(
+      decodeBarcodeFromConstraints(
+        reader(decodeOnceFromConstraints),
+        videoRef(document.createElement("video")),
+        CONSTRAINTS
+      )
+    ).resolves.toBeUndefined();
+  });
+});
 
-    expect(onSuccess).not.toHaveBeenCalled();
-    expect(onError).not.toHaveBeenCalled();
+describe("stopVideoStream", () => {
+  it("returns when the video element is missing", () => {
+    expect(() => stopVideoStream(null)).not.toThrow();
+  });
+
+  it("stops MediaStream tracks and detaches the stream", () => {
+    let video = document.createElement("video");
+    let stop = vi.fn();
+    let stream = new MediaStream();
+    Object.defineProperty(stream, "getTracks", {
+      configurable: true,
+      value: () => [{ stop }]
+    });
+    video.srcObject = stream;
+
+    stopVideoStream(video);
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(video.srcObject).toBeNull();
+  });
+
+  it("detaches a non-MediaStream srcObject without throwing", () => {
+    let video = document.createElement("video");
+    video.srcObject = new Blob();
+
+    stopVideoStream(video);
+
+    expect(video.srcObject).toBeNull();
   });
 });
