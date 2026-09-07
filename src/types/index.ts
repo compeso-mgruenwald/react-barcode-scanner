@@ -46,5 +46,7 @@ export interface BarcodeScannerProps {
    */
   videoProps?:
     | VideoHTMLAttributes<HTMLVideoElement>
-    | ((defaultProps: VideoHTMLAttributes<HTMLVideoElement>) => VideoHTMLAttributes<HTMLVideoElement>);
+    | ((
+        defaultProps: VideoHTMLAttributes<HTMLVideoElement>,
+      ) => VideoHTMLAttributes<HTMLVideoElement>);
 }

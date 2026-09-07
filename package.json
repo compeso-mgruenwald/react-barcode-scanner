@@ -2,50 +2,41 @@
   "name": "@thewirv/react-barcode-scanner",
   "version": "3.4.0",
   "description": "A React component for scanning QR codes and other barcodes via webcam",
-  "author": "Marcel Grünwald",
-  "license": "MIT",
-  "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
-  },
+  "keywords": [
+    "barcode",
+    "barcodescanner",
+    "code",
+    "codescanner",
+    "qr",
+    "qrcode",
+    "qrcodereader",
+    "qrcodescanner",
+    "qrreader",
+    "qrscanner",
+    "react",
+    "scanner"
+  ],
   "homepage": "https://github.com/compeso-mgruenwald/react-barcode-scanner#readme",
   "bugs": {
     "url": "https://github.com/compeso-mgruenwald/react-barcode-scanner/issues"
   },
-  "keywords": [
-    "react",
-    "qr",
-    "code",
-    "barcode",
-    "scanner",
-    "qrcode",
-    "qrreader",
-    "qrscanner",
-    "qrcodescanner",
-    "barcodescanner",
-    "codescanner",
-    "qrcodereader"
-  ],
-  "sideEffects": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "build": "bun run rimraf dist -I && bun run rollup -c rollup.config.js --configPlugin @rollup/plugin-typescript && bun run rimraf ./dist/types",
-    "prepublish": "bun run build",
-    "lint": "bun run eslint --quiet --fix 'src/**'",
-    "prepare": "bun run husky"
+  "license": "MIT",
+  "author": "Marcel Grünwald",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
   },
   "source": "./src/index.ts",
-  "main": "./dist/index.min.cjs",
-  "module": "./dist/index.min.js",
-  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "LICENSE",
     "README.md"
   ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.min.cjs",
+  "module": "./dist/index.min.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "development": {
@@ -62,6 +53,18 @@
     },
     "./package.json": "./package.json"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun run rimraf dist -I && bun run rollup -c rollup.config.js --configPlugin @rollup/plugin-typescript && bun run rimraf ./dist/types",
+    "prepublish": "bun run build",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "bun run eslint --quiet --fix 'src/**'",
+    "test": "true",
+    "prepare": "bun run husky"
+  },
   "dependencies": {
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3"
@@ -71,17 +74,14 @@
     "@commitlint/config-conventional": "^19.8.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.2",
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/react": "^19.1.8",
     "eslint": "^9.29.0",
-    "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-prettier": "^5.4.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^16.2.0",
     "husky": "^9.1.7",
-    "prettier": "^3.5.3",
+    "oxfmt": "^0.66.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",

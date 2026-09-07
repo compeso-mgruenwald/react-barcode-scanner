@@ -23,6 +23,6 @@
     "noEmit": false,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "*.config.ts"],
   "exclude": ["node_modules"]
 }

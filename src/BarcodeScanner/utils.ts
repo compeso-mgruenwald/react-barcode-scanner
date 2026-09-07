@@ -3,7 +3,10 @@ import type { BrowserMultiFormatReader } from '@zxing/browser';
 import { ChecksumException, FormatException, NotFoundException } from '@zxing/library';
 import type { BarcodeScannerProps } from '../types';
 
-type DecodeBarcodeFromConstraintsProps = Pick<BarcodeScannerProps, 'constraints' | 'onSuccess' | 'onError'>;
+type DecodeBarcodeFromConstraintsProps = Pick<
+  BarcodeScannerProps,
+  'constraints' | 'onSuccess' | 'onError'
+>;
 
 export async function decodeBarcodeFromConstraints(
   codeReader: BrowserMultiFormatReader,
@@ -22,7 +25,11 @@ export async function decodeBarcodeFromConstraints(
   } catch (error) {
     if (
       error &&
-      !(error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException)
+      !(
+        error instanceof NotFoundException ||
+        error instanceof ChecksumException ||
+        error instanceof FormatException
+      )
     ) {
       onError(error as Error);
     }
