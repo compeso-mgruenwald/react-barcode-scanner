@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2026-09-08
+
+### Fixed
+
+- Cleanup now stops the ZXing scan loop. `doScan` off, unmount, and a constraint change used to leave decode running after the camera was gone.
+- Each `MultiFormatReader: non-ReaderException` warning goes to the console once per started stream. Repeats wait for the next stream.
+
 ## [4.0.0] - 2026-09-08
 
 ### Breaking
@@ -112,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Earlier git tags exist (`v2.2.0` through `v1.1.0`, plus `1.2.0`) and have no GitHub Release notes.
 
+[4.0.1]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v3.4.0...v4.0.0
 [3.4.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v3.3.5...v3.4.0
 [3.3.5]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v3.3.4...v3.3.5
