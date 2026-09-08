@@ -1,27 +1,15 @@
 import { defineConfig } from "vite-plus";
-import type { UserConfig } from "vite-plus";
 
-let config: UserConfig = defineConfig({
-  test: {
-    environment: "jsdom",
-    setupFiles: ["./vitest.setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "html"],
-      include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/**/*.test.{ts,tsx}", "src/types/**"],
-      thresholds: {
-        statements: 100,
-        branches: 100,
-        functions: 100,
-        lines: 100
-      }
-    }
+export default defineConfig({
+  defaultPackage: {
+    dev: "./apps/example",
+    build: "./apps/example",
+    preview: "./apps/example",
+    pack: "./packages/react-barcode-scanner"
   },
   fmt: {
     trailingComma: "none",
-    ignorePatterns: ["example/**", "dist/**", "coverage/**", ".cursor/**"],
+    ignorePatterns: ["dist/**", "coverage/**", ".cursor/**"],
     sortImports: {
       newlinesBetween: false,
       customGroups: [
@@ -48,7 +36,7 @@ let config: UserConfig = defineConfig({
     env: {
       browser: true
     },
-    ignorePatterns: ["example", "dist", "coverage"],
+    ignorePatterns: ["dist", "coverage"],
     settings: {
       react: {
         version: "19.2.8"
@@ -65,6 +53,14 @@ let config: UserConfig = defineConfig({
         files: ["*.config.ts"],
         rules: {
           "import/no-default-export": "off"
+        }
+      },
+      {
+        files: ["apps/example/**"],
+        rules: {
+          "no-console": "off",
+          "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }],
+          "react/no-unstable-nested-components": ["error", { allowAsProps: true }]
         }
       }
     ],
@@ -123,22 +119,5 @@ let config: UserConfig = defineConfig({
         }
       ]
     }
-  },
-  pack: {
-    entry: "src/index.ts",
-    format: "esm",
-    platform: "browser",
-    dts: true,
-    clean: true,
-    exports: true,
-    unused: {
-      ignore: {
-        peerDependencies: ["react-dom"]
-      }
-    },
-    publint: true,
-    attw: { profile: "esm-only", level: "error" }
   }
 });
-
-export default config;

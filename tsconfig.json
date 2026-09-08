@@ -1,17 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "lib": ["ESNext", "DOM"],
-    "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "isolatedDeclarations": true,
-    "declaration": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "skipLibCheck": true,
-    "noEmit": true
-  },
-  "include": ["src", "*.config.ts"]
+  "extends": "./tsconfig.base.json",
+  "include": ["*.config.ts"]
 }

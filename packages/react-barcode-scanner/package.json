@@ -1,0 +1,71 @@
+{
+  "name": "@thewirv/react-barcode-scanner",
+  "version": "3.4.0",
+  "description": "A React component for scanning QR codes and other barcodes via webcam",
+  "keywords": [
+    "barcode",
+    "barcodescanner",
+    "code",
+    "codescanner",
+    "qr",
+    "qrcode",
+    "qrcodereader",
+    "qrcodescanner",
+    "qrreader",
+    "qrscanner",
+    "react",
+    "scanner"
+  ],
+  "homepage": "https://github.com/compeso-mgruenwald/react-barcode-scanner#readme",
+  "bugs": {
+    "url": "https://github.com/compeso-mgruenwald/react-barcode-scanner/issues"
+  },
+  "license": "MIT",
+  "author": "Marcel Grünwald",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "prepublishOnly": "bun run build",
+    "test": "vp test --coverage",
+    "check": "vp check && bun run build && bun run test"
+  },
+  "dependencies": {
+    "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "catalog:",
+    "@vitest/coverage-v8": "4.1.11",
+    "jsdom": "^30.0.1",
+    "publint": "^0.3.24",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-icons": "^5.7.0",
+    "unplugin-unused": "^0.5.0"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || 17.x || 18.x || 19.x",
+    "react-dom": "^16.8.0 || 17.x || 18.x || 19.x",
+    "react-icons": ">=4.8"
+  }
+}

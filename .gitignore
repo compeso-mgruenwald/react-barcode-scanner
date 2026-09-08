@@ -5,7 +5,9 @@ npm-debug.log*
 node_modules
 pkg
 dist
+dist-ssr
 coverage
+*.local
 *.tsbuildinfo
 
 .cursor/plans/**

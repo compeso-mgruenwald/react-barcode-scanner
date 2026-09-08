@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "moduleDetection": "force",
+    "strict": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@thewirv/react-barcode-scanner": ["../../packages/react-barcode-scanner/src/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

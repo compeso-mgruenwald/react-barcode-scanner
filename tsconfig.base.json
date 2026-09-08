@@ -3,19 +3,12 @@
     "target": "esnext",
     "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "moduleDetection": "force",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "strict": true,
     "skipLibCheck": true,
-    "noEmit": true,
-    "types": ["vite/client"]
-  },
-  "include": ["src", "vite.config.ts"]
+    "noEmit": true
+  }
 }
