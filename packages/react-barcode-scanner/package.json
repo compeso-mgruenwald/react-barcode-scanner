@@ -24,7 +24,8 @@
   "author": "Marcel Grünwald",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
+    "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git",
+    "directory": "packages/react-barcode-scanner"
   },
   "files": [
     "dist",

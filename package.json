@@ -1,6 +1,17 @@
 {
   "name": "react-barcode-scanner",
   "private": true,
+  "description": "A React component for scanning QR codes and other barcodes via webcam",
+  "homepage": "https://github.com/compeso-mgruenwald/react-barcode-scanner#readme",
+  "bugs": {
+    "url": "https://github.com/compeso-mgruenwald/react-barcode-scanner/issues"
+  },
+  "license": "MIT",
+  "author": "Marcel Grünwald",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
+  },
   "workspaces": {
     "packages": [
       "packages/*",
