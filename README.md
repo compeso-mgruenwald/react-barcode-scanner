@@ -11,6 +11,7 @@
   - [pnpm](#pnpm)
   - [yarn](#yarn)
   - [npm](#npm)
+- [Upgrading to 4.0](#upgrading-to-40)
 - [Example Usage](#example-usage)
 - [BarcodeScanner API](#component-api)
 - [Browser support](#browser-support)
@@ -61,6 +62,16 @@ yarn add @thewirv/react-barcode-scanner
 ```bash
 npm i --save @thewirv/react-barcode-scanner
 ```
+
+## Upgrading to 4.0
+
+4.0 is ESM-only. Use `import { BarcodeScanner } from '@thewirv/react-barcode-scanner'`. `require()` does not work, and the 3.x `development` / `production` export conditions are gone.
+
+`@zxing/browser` is `^0.2.1` (was `^0.1.5`). `@zxing/library` is `^0.23.0` (was `^0.21.3`).
+
+The camera session no longer restarts when parent callback identities change. The stream stops on unmount, `doScan={false}`, and constraint changes compared by value.
+
+Full notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Example Usage
 
