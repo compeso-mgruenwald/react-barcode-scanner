@@ -9,8 +9,8 @@ vi.mock("@zxing/browser", async (importOriginal) => {
   return {
     ...actual,
     BrowserMultiFormatReader: class BrowserMultiFormatReader {
-      decodeOnceFromStream() {
-        return Promise.resolve({ getText: () => "" });
+      scan() {
+        return { stop() {} };
       }
     }
   };
@@ -20,7 +20,12 @@ vi.mock("./utils", async (importOriginal) => {
   let actual = await importOriginal<typeof import("./utils")>();
   return {
     ...actual,
-    decodeBarcodeFromConstraints: vi.fn(() => Promise.resolve())
+    decodeBarcodeFromConstraints: vi.fn(
+      (_reader, _video, _constraints, _isCancelled, _onStream, onStop) => {
+        onStop?.(() => {});
+        return Promise.resolve();
+      }
+    )
   };
 });
 
@@ -86,8 +91,9 @@ function mockDecodeAttachingStream() {
   let stops: Array<ReturnType<typeof vi.fn>> = [];
 
   vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
-    async (_reader, videoElement, _constraints, isCancelled, onStream) => {
+    async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
       stops.push(attachOwnedStream(videoElement, isCancelled, onStream));
+      onStop?.(() => {});
     }
   );
 

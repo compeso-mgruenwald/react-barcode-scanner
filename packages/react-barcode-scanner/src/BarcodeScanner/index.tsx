@@ -55,6 +55,7 @@ export function BarcodeScanner({
   useEffect(() => {
     let video = videoElement.current;
     let cancelled = false;
+    let stopScan: (() => void) | undefined;
 
     if (doScan && navigator?.mediaDevices) {
       async function decode() {
@@ -66,6 +67,9 @@ export function BarcodeScanner({
             () => cancelled,
             (stream) => {
               if (!cancelled) activeStreamRef.current = stream;
+            },
+            (stop) => {
+              stopScan = stop;
             }
           );
 
@@ -84,6 +88,7 @@ export function BarcodeScanner({
 
     return () => {
       cancelled = true;
+      stopScan?.();
       activeStreamRef.current = null;
       stopVideoStream(video);
     };
