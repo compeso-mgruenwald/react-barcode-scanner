@@ -10,7 +10,7 @@ let config: UserConfig = defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/**/*.test.{ts,tsx}", "src/types/**"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/types.ts"],
       thresholds: {
         statements: 100,
         branches: 100,
@@ -20,7 +20,7 @@ let config: UserConfig = defineConfig({
     }
   },
   pack: {
-    entry: "src/index.ts",
+    entry: "src/index.tsx",
     format: "esm",
     platform: "browser",
     dts: true,
@@ -32,7 +32,12 @@ let config: UserConfig = defineConfig({
       }
     },
     publint: true,
-    attw: { profile: "esm-only", level: "error" }
+    attw: {
+      profile: "esm-only",
+      level: "error",
+      excludeEntrypoints: ["./style.css"]
+    },
+    css: { inject: true }
   }
 });
 

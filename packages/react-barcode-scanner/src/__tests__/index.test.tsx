@@ -1,8 +1,11 @@
 import type { ComponentProps } from "react";
-import { act, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { BarcodeScanner, MEDIA_DEVICES_ERROR_MESSAGE } from "./index";
-import { decodeBarcodeFromConstraints } from "./utils";
+import { BarcodeScanner } from "../index";
+import { decodeBarcodeFromConstraints } from "../utils/decodeBarcode";
+
+const MEDIA_DEVICES_ERROR_MESSAGE =
+  'Your browser has no support for the MediaDevices API. You could fix this by running "npm i webrtc-adapter"';
 
 vi.mock("@zxing/browser", async (importOriginal) => {
   let actual = await importOriginal<typeof import("@zxing/browser")>();
@@ -16,8 +19,8 @@ vi.mock("@zxing/browser", async (importOriginal) => {
   };
 });
 
-vi.mock("./utils", async (importOriginal) => {
-  let actual = await importOriginal<typeof import("./utils")>();
+vi.mock("../utils/decodeBarcode", async (importOriginal) => {
+  let actual = await importOriginal<typeof import("../utils/decodeBarcode")>();
   return {
     ...actual,
     decodeBarcodeFromConstraints: vi.fn(
@@ -29,8 +32,12 @@ vi.mock("./utils", async (importOriginal) => {
   };
 });
 
-function Viewfinder() {
+function CustomViewfinder() {
   return <div data-testid="viewfinder">finder</div>;
+}
+
+function getDefaultViewfinder(container: HTMLElement) {
+  return container.querySelector('path[d="M0 0h100v100H0zM10 10h80v80H10z"]');
 }
 
 function stubMediaDevices() {
@@ -55,6 +62,14 @@ function videoFrom(container: HTMLElement) {
   }
 
   return video;
+}
+
+function getLoading(container: HTMLElement) {
+  return container.querySelector('[role="status"][aria-label="Loading camera"]');
+}
+
+function getCameraOff(container: HTMLElement) {
+  return container.querySelector('[role="img"][aria-label="Camera off"]');
 }
 
 function streamWithStop() {
@@ -123,33 +138,63 @@ function renderScanner(
   };
 }
 
+describe("public API", () => {
+  it("exports BarcodeScanner", () => {
+    expect(typeof BarcodeScanner).toBe("function");
+  });
+});
+
 describe("BarcodeScanner", () => {
   beforeEach(() => {
-    clearMediaDevices();
+    stubMediaDevices();
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
-  it("shows the camera-off overlay until the camera is initialized", () => {
+  it("shows the loading overlay on the video until the camera is initialized", () => {
     let { container } = renderScanner();
 
-    expect(container.querySelector("svg")).not.toBeNull();
-    expect(videoFrom(container).parentElement?.style.display).toBe("none");
+    expect(videoFrom(container)).toBeInstanceOf(HTMLVideoElement);
+    expect(getLoading(container)).not.toBeNull();
+    expect(container.getElementsByClassName("rbs:camera-loading-icon")[0]).toBeTruthy();
+    expect(getCameraOff(container)).toBeNull();
   });
 
-  it("keeps the overlay when scanning is disabled", () => {
-    let { container } = renderScanner({ doScan: false });
+  it("spins the loader in CSS and honors prefers-reduced-motion", () => {
+    let { container } = renderScanner();
 
-    expect(container.querySelector("svg")).not.toBeNull();
+    expect(container.querySelector("style")).toBeNull();
+    expect(getLoading(container)).not.toBeNull();
+    expect(container.getElementsByClassName("rbs:camera-loading-icon")[0]).toBeTruthy();
+  });
+
+  it("swaps to the camera-off view when scanning is disabled", () => {
+    let { container } = renderScanner({ doScan: false, Viewfinder: CustomViewfinder });
+
+    expect(container.querySelector("video")).toBeNull();
+    expect(getCameraOff(container)).not.toBeNull();
+    expect(getLoading(container)).toBeNull();
     expect(decodeBarcodeFromConstraints).not.toHaveBeenCalled();
+    expect(container.querySelector("[data-testid=viewfinder]")).toBeNull();
+
+    let cameraOff = getCameraOff(container);
+
+    if (!(cameraOff instanceof HTMLElement)) {
+      throw new Error("expected camera-off element");
+    }
+
+    expect(cameraOff.classList.contains("rbs:camera-off")).toBe(true);
   });
 
-  it("warns and calls onError when MediaDevices is missing", () => {
-    let { onError } = renderScanner();
+  it("warns and calls onError when MediaDevices is missing", async () => {
+    clearMediaDevices();
+    let { container, onError } = renderScanner();
 
     expect(console.warn).toHaveBeenCalledWith(
       `[ReactBarcodeScanner]: ${MEDIA_DEVICES_ERROR_MESSAGE}`
@@ -158,10 +203,15 @@ describe("BarcodeScanner", () => {
     expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
     expect(onError.mock.calls[0]?.[0]?.message).toBe(MEDIA_DEVICES_ERROR_MESSAGE);
     expect(decodeBarcodeFromConstraints).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(container.querySelector("video")).toBeNull();
+      expect(getCameraOff(container)).not.toBeNull();
+    });
+    expect(getLoading(container)).toBeNull();
   });
 
   it("starts decoding when scanning is enabled and MediaDevices exists", async () => {
-    stubMediaDevices();
     let constraints = { facingMode: "environment" as const };
     vi.mocked(decodeBarcodeFromConstraints).mockResolvedValue("scanned");
     let { onSuccess, onError } = renderScanner({ constraints });
@@ -183,26 +233,80 @@ describe("BarcodeScanner", () => {
   });
 
   it("forwards a decode rejection to onError", async () => {
-    stubMediaDevices();
     let error = new Error("boom");
     vi.mocked(decodeBarcodeFromConstraints).mockRejectedValue(error);
-    let { onSuccess, onError } = renderScanner();
+    let { container, onSuccess, onError } = renderScanner();
 
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(error);
     });
     expect(onSuccess).not.toHaveBeenCalled();
+    expect(container.querySelector("video")).toBeNull();
+    expect(getCameraOff(container)).not.toBeNull();
+    expect(getLoading(container)).toBeNull();
+  });
+
+  it("stops an attached stream and shows camera-off when decode rejects", async () => {
+    let { stream, stop } = streamWithStop();
+
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+      async (_reader, videoElement, _constraints, _isCancelled, onStream, onStop) => {
+        if (videoElement.current) {
+          videoElement.current.srcObject = stream;
+        }
+
+        onStream(stream);
+        onStop?.(() => {});
+        throw new Error("boom");
+      }
+    );
+
+    let { container, onError } = renderScanner();
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledOnce();
+    });
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(container.querySelector("video")).toBeNull();
+    expect(getCameraOff(container)).not.toBeNull();
+    expect(getLoading(container)).toBeNull();
+  });
+
+  it("retries after a camera error when doScan is toggled back on", async () => {
+    let call = 0;
+    vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async () => {
+      if (call++ === 0) throw new Error("boom");
+    });
+    let { rerender, container, onSuccess, onError } = renderScanner();
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledOnce();
+    });
+    expect(getCameraOff(container)).not.toBeNull();
+    expect(container.querySelector("video")).toBeNull();
+    let callsAfterError = vi.mocked(decodeBarcodeFromConstraints).mock.calls.length;
+
+    rerender(<BarcodeScanner doScan={false} onSuccess={onSuccess} onError={onError} />);
+    rerender(<BarcodeScanner doScan={true} onSuccess={onSuccess} onError={onError} />);
+
+    await waitFor(() => {
+      expect(vi.mocked(decodeBarcodeFromConstraints).mock.calls.length).toBeGreaterThan(
+        callsAfterError
+      );
+      expect(container.querySelector("video")).toBeInstanceOf(HTMLVideoElement);
+    });
+    expect(getLoading(container)).not.toBeNull();
+    expect(getCameraOff(container)).toBeNull();
   });
 
   it("does not decode when doScan is false even if MediaDevices exists", () => {
-    stubMediaDevices();
     renderScanner({ doScan: false });
 
     expect(decodeBarcodeFromConstraints).not.toHaveBeenCalled();
   });
 
   it("does not restart decode when constraints are omitted and callbacks are inline", async () => {
-    stubMediaDevices();
     let { rerender } = render(
       <BarcodeScanner onSuccess={() => {}} onError={() => {}} onLoad={() => {}} />
     );
@@ -211,13 +315,19 @@ describe("BarcodeScanner", () => {
       expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
     });
 
+    expect(vi.mocked(decodeBarcodeFromConstraints).mock.calls[0]?.[2]).toEqual({
+      facingMode: "environment",
+      width: { ideal: 720 },
+      height: { ideal: 720 },
+      aspectRatio: { ideal: 1 }
+    });
+
     rerender(<BarcodeScanner onSuccess={() => {}} onError={() => {}} onLoad={() => {}} />);
 
     expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
   });
 
   it("forwards empty decoded text to onSuccess", async () => {
-    stubMediaDevices();
     vi.mocked(decodeBarcodeFromConstraints).mockResolvedValue("");
     let { onSuccess, onError } = renderScanner();
 
@@ -228,7 +338,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("does not restart decode when constraint values are equal regardless of key order", async () => {
-    stubMediaDevices();
     let { rerender, onSuccess, onError } = renderScanner({
       constraints: { facingMode: "environment", width: 1280 }
     });
@@ -249,7 +358,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("starts a new session when constraint values change", async () => {
-    stubMediaDevices();
     let { stops } = mockDecodeAttachingStream();
     let { rerender, onSuccess, onError } = renderScanner({
       constraints: { facingMode: "environment" }
@@ -276,9 +384,8 @@ describe("BarcodeScanner", () => {
   });
 
   it("stops the camera when doScan becomes false", async () => {
-    stubMediaDevices();
     let { stops } = mockDecodeAttachingStream();
-    let { rerender, onSuccess, onError } = renderScanner();
+    let { rerender, container, onSuccess, onError } = renderScanner();
 
     await waitFor(() => {
       expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
@@ -287,10 +394,12 @@ describe("BarcodeScanner", () => {
     rerender(<BarcodeScanner doScan={false} onSuccess={onSuccess} onError={onError} />);
 
     expect(stops[0]).toHaveBeenCalledOnce();
+    expect(container.querySelector("video")).toBeNull();
+    expect(getCameraOff(container)).not.toBeNull();
+    expect(getLoading(container)).toBeNull();
   });
 
   it("stops the camera on unmount", async () => {
-    stubMediaDevices();
     let { stops } = mockDecodeAttachingStream();
     let { unmount } = renderScanner();
 
@@ -304,7 +413,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("does not stop the successor session when a cancelled decode settles", async () => {
-    stubMediaDevices();
     let first = deferred();
     let stops: Array<ReturnType<typeof vi.fn>> = [];
     let call = 0;
@@ -353,7 +461,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("stops tracks that attach after doScan becomes false", async () => {
-    stubMediaDevices();
     let attach = deferred();
     let stops: Array<ReturnType<typeof vi.fn>> = [];
 
@@ -392,7 +499,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("stops a late first stream after constraints change without stopping the successor", async () => {
-    stubMediaDevices();
     let first = deferred();
     let stops: Array<ReturnType<typeof vi.fn>> = [];
     let call = 0;
@@ -454,7 +560,6 @@ describe("BarcodeScanner", () => {
   ] as const)(
     "does not call scan callbacks after unmount when decode $name",
     async ({ settle }) => {
-      stubMediaDevices();
       let finish = deferred<string>();
 
       vi.mocked(decodeBarcodeFromConstraints).mockImplementation(async () => finish.promise);
@@ -477,11 +582,11 @@ describe("BarcodeScanner", () => {
     }
   );
 
-  it("hides the preview until a new stream is ready after constraints change", async () => {
-    stubMediaDevices();
+  it("shows the loading overlay until a new stream is ready after constraints change", async () => {
     mockDecodeAttachingStream();
     let { rerender, container, onSuccess, onError } = renderScanner({
-      constraints: { facingMode: "environment" }
+      constraints: { facingMode: "environment" },
+      Viewfinder: CustomViewfinder
     });
     let video = videoFrom(container);
 
@@ -494,21 +599,26 @@ describe("BarcodeScanner", () => {
       value: HTMLMediaElement.HAVE_ENOUGH_DATA
     });
     fireEvent.loadedData(video);
-    expect(container.querySelector("svg")).toBeNull();
+    expect(getLoading(container)).toBeNull();
+    expect(container.querySelector("[data-testid=viewfinder]")).not.toBeNull();
+    expect(videoFrom(container)).toBeInstanceOf(HTMLVideoElement);
 
     rerender(
       <BarcodeScanner
         constraints={{ facingMode: "user" }}
         onSuccess={onSuccess}
         onError={onError}
+        Viewfinder={CustomViewfinder}
       />
     );
 
-    expect(container.querySelector("svg")).not.toBeNull();
+    expect(getLoading(container)).not.toBeNull();
+    expect(container.querySelector("[data-testid=viewfinder]")).toBeNull();
+    expect(videoFrom(container)).toBeInstanceOf(HTMLVideoElement);
+    expect(getCameraOff(container)).toBeNull();
   });
 
   it("ignores stale loaded data after constraints change", async () => {
-    stubMediaDevices();
     mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { rerender, container, onSuccess, onError } = renderScanner({
@@ -527,7 +637,7 @@ describe("BarcodeScanner", () => {
     });
     fireEvent.loadedData(video);
     expect(onLoad).toHaveBeenCalledOnce();
-    expect(container.querySelector("svg")).toBeNull();
+    expect(getLoading(container)).toBeNull();
 
     rerender(
       <BarcodeScanner
@@ -546,19 +656,115 @@ describe("BarcodeScanner", () => {
     fireEvent.loadedData(video);
 
     expect(onLoad).toHaveBeenCalledOnce();
-    expect(container.querySelector("svg")).not.toBeNull();
+    expect(getLoading(container)).not.toBeNull();
   });
 
-  it("renders a Viewfinder and applies container styles", () => {
+  it("renders a Viewfinder after the camera is initialized and applies container styles", async () => {
+    mockDecodeAttachingStream();
     let { container, getByTestId } = renderScanner({
-      Viewfinder,
+      Viewfinder: CustomViewfinder,
       containerStyle: { width: "321px" },
       videoContainerStyle: { height: "240px" }
     });
 
-    expect(getByTestId("viewfinder").textContent).toBe("finder");
     expect(container.querySelector("section")?.style.width).toBe("321px");
     expect(videoFrom(container).parentElement?.style.height).toBe("240px");
+    expect(container.querySelector("[data-testid=viewfinder]")).toBeNull();
+    expect(getLoading(container)).not.toBeNull();
+
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(getByTestId("viewfinder").textContent).toBe("finder");
+    expect(getLoading(container)).toBeNull();
+    expect(getDefaultViewfinder(container)).toBeNull();
+  });
+
+  it("renders the default Viewfinder after the camera is initialized", async () => {
+    mockDecodeAttachingStream();
+    let { container } = renderScanner();
+    let video = videoFrom(container);
+
+    expect(getDefaultViewfinder(container)).toBeNull();
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(getDefaultViewfinder(container)).not.toBeNull();
+    expect(getLoading(container)).toBeNull();
+  });
+
+  it("hides the Viewfinder when the prop is null", async () => {
+    mockDecodeAttachingStream();
+    let { container } = renderScanner({ Viewfinder: null });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(getDefaultViewfinder(container)).toBeNull();
+    expect(container.querySelector("[data-testid=viewfinder]")).toBeNull();
+    expect(getLoading(container)).toBeNull();
+  });
+
+  it("keeps a square section by default and when only width is set", () => {
+    let { container, rerender, onSuccess, onError } = renderScanner();
+    let section = container.querySelector("section");
+
+    expect(section?.classList.contains("rbs:container")).toBe(true);
+    expect(section?.style.aspectRatio).toBe("");
+    expect(section?.style.width).toBe("");
+
+    rerender(
+      <BarcodeScanner containerStyle={{ width: "100%" }} onSuccess={onSuccess} onError={onError} />
+    );
+
+    expect(container.querySelector("section")?.classList.contains("rbs:container")).toBe(true);
+    expect(container.querySelector("section")?.style.width).toBe("100%");
+  });
+
+  it("lets containerStyle override the default aspect ratio", () => {
+    let { container } = renderScanner({
+      containerStyle: { aspectRatio: "16 / 9" }
+    });
+
+    expect(container.querySelector("section")?.classList.contains("rbs:container")).toBe(true);
+    expect(container.querySelector("section")?.style.aspectRatio).toBe("16 / 9");
+  });
+
+  it("covers the video box inside an absolutely filled wrapper", () => {
+    let { container } = renderScanner();
+    let video = videoFrom(container);
+    let wrapper = video.parentElement;
+
+    expect(container.querySelector("section")?.classList.contains("rbs:container")).toBe(true);
+    expect(wrapper?.classList.contains("rbs:video-container")).toBe(true);
+    expect(video.classList.contains("rbs:video")).toBe(true);
+    expect(video.style.objectFit).toBe("");
+    expect(wrapper?.style.position).toBe("");
   });
 
   it("replaces default video props when videoProps is an object", () => {
@@ -570,6 +776,31 @@ describe("BarcodeScanner", () => {
     expect(video.id).toBe("override-video");
     expect(video.muted).toBe(false);
     expect(video.hasAttribute("playsinline")).toBe(false);
+  });
+
+  it("still dismisses the loader when videoProps is an object", async () => {
+    mockDecodeAttachingStream();
+    let onLoad = vi.fn();
+    let consumerLoadedData = vi.fn();
+    let { container } = renderScanner({
+      onLoad,
+      videoProps: { id: "override-video", onLoadedData: consumerLoadedData }
+    });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(consumerLoadedData).toHaveBeenCalledOnce();
+    expect(onLoad).toHaveBeenCalledOnce();
+    expect(getLoading(container)).toBeNull();
   });
 
   it("lets a videoProps function receive and extend the defaults", () => {
@@ -598,7 +829,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("initializes the camera and calls onLoad when the video has enough data", async () => {
-    stubMediaDevices();
     mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
@@ -616,12 +846,11 @@ describe("BarcodeScanner", () => {
     fireEvent.loadedData(video);
 
     expect(onLoad).toHaveBeenCalledOnce();
-    expect(container.querySelector("svg")).toBeNull();
-    expect(video.parentElement?.style.display).toBe("block");
+    expect(getLoading(container)).toBeNull();
+    expect(videoFrom(container)).toBeInstanceOf(HTMLVideoElement);
   });
 
   it("does not call onLoad when the video is not ready", async () => {
-    stubMediaDevices();
     mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
@@ -639,11 +868,10 @@ describe("BarcodeScanner", () => {
     fireEvent.loadedData(video);
 
     expect(onLoad).not.toHaveBeenCalled();
-    expect(container.querySelector("svg")).not.toBeNull();
+    expect(getLoading(container)).not.toBeNull();
   });
 
   it("ignores loaded data when readyState is missing", async () => {
-    stubMediaDevices();
     mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });
@@ -664,7 +892,6 @@ describe("BarcodeScanner", () => {
   });
 
   it("ignores loaded data when the event target is not a video", async () => {
-    stubMediaDevices();
     mockDecodeAttachingStream();
     let onLoad = vi.fn();
     let { container } = renderScanner({ onLoad });

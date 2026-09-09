@@ -1,0 +1,26 @@
+@keyframes rbs-camera-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rbs\:camera-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+
+.rbs\:camera-loading-icon {
+  color: #fff;
+  animation: rbs-camera-loading-spin 0.75s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rbs\:camera-loading-icon {
+    animation: none;
+  }
+}

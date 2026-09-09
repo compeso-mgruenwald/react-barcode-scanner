@@ -8,7 +8,11 @@ import {
   Result
 } from "@zxing/library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { decodeBarcodeFromConstraints, stopVideoStream, UNKNOWN_SCAN_ERROR_MESSAGE } from "./utils";
+import {
+  decodeBarcodeFromConstraints,
+  stopVideoStream,
+  UNKNOWN_SCAN_ERROR_MESSAGE
+} from "../decodeBarcode";
 
 const CONSTRAINTS: MediaTrackConstraints = { facingMode: "environment" };
 

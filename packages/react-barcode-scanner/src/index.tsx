@@ -1,16 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, VideoHTMLAttributes } from "react";
-import { FiCameraOff } from "react-icons/fi";
 import { BrowserMultiFormatReader } from "@zxing/browser";
-import type { BarcodeScannerProps as Props } from "../types";
-import { deepEqual } from "./deepEqual";
-import { STYLES } from "./styles";
-import { decodeBarcodeFromConstraints, stopVideoStream } from "./utils";
+import { CameraLoading } from "./components/CameraLoading";
+import { CameraOff } from "./components/CameraOff";
+import { Viewfinder as DefaultViewfinder } from "./components/Viewfinder";
+import type { BarcodeScannerProps as Props } from "./types";
+import { decodeBarcodeFromConstraints, stopVideoStream } from "./utils/decodeBarcode";
+import { deepEqual } from "./utils/deepEqual";
+import "./index.css";
 
-const DEFAULT_CONSTRAINTS: MediaTrackConstraints = { facingMode: "environment" };
-export const MEDIA_DEVICES_ERROR_MESSAGE: string =
+export type { BarcodeScannerProps } from "./types";
+
+const DEFAULT_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: "environment",
+  width: { ideal: 720 },
+  height: { ideal: 720 },
+  aspectRatio: { ideal: 1 }
+};
+const MEDIA_DEVICES_ERROR_MESSAGE =
   'Your browser has no support for the MediaDevices API. You could fix this by running "npm i webrtc-adapter"';
-const CAMERA_OFF_ICON_SIZE = 300;
 
 export function BarcodeScanner({
   doScan = true,
@@ -18,13 +26,14 @@ export function BarcodeScanner({
   onSuccess,
   onError,
   onLoad,
-  Viewfinder,
+  Viewfinder = DefaultViewfinder,
   containerStyle,
   videoContainerStyle,
   videoStyle,
   videoProps: passedVideoProps
 }: Props): ReactElement {
   let [isCameraInitialized, setIsCameraInitialized] = useState(false);
+  let [isScanAllowed, setIsScanAllowed] = useState(true);
   let [stableConstraints, setStableConstraints] = useState(constraints);
   let [prevDoScan, setPrevDoScan] = useState(doScan);
   let codeReader = useMemo(() => new BrowserMultiFormatReader(), []);
@@ -48,9 +57,8 @@ export function BarcodeScanner({
   if (constraintsChanged || prevDoScan !== doScan) {
     setPrevDoScan(doScan);
     setIsCameraInitialized(false);
+    setIsScanAllowed(true);
   }
-
-  let isShowingDisabledImage = !isCameraInitialized || !doScan;
 
   useEffect(() => {
     let video = videoElement.current;
@@ -75,13 +83,21 @@ export function BarcodeScanner({
 
           if (!cancelled && text !== undefined) onSuccessRef.current(text);
         } catch (error) {
+          if (cancelled) return;
+
+          stopScan?.();
+          stopVideoStream(videoElement.current);
+          activeStreamRef.current = null;
+          setIsScanAllowed(false);
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- We know for sure that this is an Error
-          if (!cancelled) onErrorRef.current(error as Error);
+          onErrorRef.current(error as Error);
         }
       }
 
       void decode();
     } else if (doScan) {
+      // oxlint-disable-next-line react/set-state-in-effect -- MediaDevices is checked after mount so SSR and the client paint the same tree
+      setIsScanAllowed(false);
       console.warn(`[ReactBarcodeScanner]: ${MEDIA_DEVICES_ERROR_MESSAGE}`);
       onErrorRef.current(new Error(MEDIA_DEVICES_ERROR_MESSAGE));
     }
@@ -99,20 +115,8 @@ export function BarcodeScanner({
       playsInline: true,
       disablePictureInPicture: true,
       muted: true,
-      onLoadedData: ({ nativeEvent }) => {
-        let eventTarget = nativeEvent.target;
-
-        if (!(eventTarget instanceof HTMLVideoElement) || !eventTarget.readyState) return;
-
-        if (!activeStreamRef.current || eventTarget.srcObject !== activeStreamRef.current) return;
-
-        if (eventTarget.readyState === eventTarget.HAVE_ENOUGH_DATA) {
-          setIsCameraInitialized(true);
-          onLoadRef.current?.();
-        }
-      },
+      className: "rbs:video",
       style: {
-        ...STYLES.video,
         ...videoStyle,
         transform: `${videoStyle?.transform ?? ""} ${stableConstraints.facingMode === "user" ? "scaleX(-1)" : ""}`
       }
@@ -122,27 +126,45 @@ export function BarcodeScanner({
 
     if (typeof passedVideoProps !== "function") return passedVideoProps;
 
-    // oxlint-disable-next-line react/refs -- onLoadedData reads onLoadRef; passing defaults to videoProps is not a render-time ref read
     return passedVideoProps(defaultVideoProps);
   }, [stableConstraints.facingMode, passedVideoProps, videoStyle]);
 
+  let passedOnLoadedData = videoProps.onLoadedData;
+  let handleVideoLoadedData = useCallback<
+    NonNullable<VideoHTMLAttributes<HTMLVideoElement>["onLoadedData"]>
+  >(
+    (event) => {
+      passedOnLoadedData?.(event);
+
+      let eventTarget = event.nativeEvent.target;
+
+      if (!(eventTarget instanceof HTMLVideoElement) || !eventTarget.readyState) return;
+
+      if (!activeStreamRef.current || eventTarget.srcObject !== activeStreamRef.current) return;
+
+      if (eventTarget.readyState === eventTarget.HAVE_ENOUGH_DATA) {
+        setIsCameraInitialized(true);
+        onLoadRef.current?.();
+      }
+    },
+    [passedOnLoadedData]
+  );
+
   return (
-    <section style={containerStyle}>
-      {isShowingDisabledImage && (
-        <div style={STYLES.barcodeScannerError}>
-          <FiCameraOff size={CAMERA_OFF_ICON_SIZE} style={STYLES.barcodeScannerErrorSvg} />
+    <section className="rbs:container" style={containerStyle}>
+      {doScan && isScanAllowed ? (
+        <div className="rbs:video-container" style={videoContainerStyle}>
+          <video
+            {...videoProps}
+            ref={videoElement}
+            aria-invalid="false"
+            onLoadedData={handleVideoLoadedData}
+          />
+          {isCameraInitialized ? !!Viewfinder && <Viewfinder /> : <CameraLoading />}
         </div>
+      ) : (
+        <CameraOff />
       )}
-      <div
-        style={{
-          ...STYLES.container,
-          ...(!isShowingDisabledImage ? STYLES.barcodeScannerVisible : {}),
-          ...videoContainerStyle
-        }}
-      >
-        <video ref={videoElement} {...videoProps} aria-invalid="false" />
-        {!!Viewfinder && <Viewfinder />}
-      </div>
     </section>
   );
 }

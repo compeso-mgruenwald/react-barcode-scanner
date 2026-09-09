@@ -62,6 +62,12 @@ export default defineConfig({
           "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }],
           "react/no-unstable-nested-components": ["error", { allowAsProps: true }]
         }
+      },
+      {
+        files: ["packages/react-barcode-scanner/**"],
+        rules: {
+          "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }]
+        }
       }
     ],
     rules: {

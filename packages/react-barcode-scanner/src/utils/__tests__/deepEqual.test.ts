@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { deepEqual } from "./deepEqual";
+import { deepEqual } from "../deepEqual";
 
 describe("deepEqual", () => {
   it("treats identical primitives as equal", () => {

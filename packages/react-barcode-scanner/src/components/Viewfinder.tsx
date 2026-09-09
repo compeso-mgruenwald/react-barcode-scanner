@@ -1,0 +1,27 @@
+import type { ReactElement } from "react";
+import "./Viewfinder.css";
+
+export function Viewfinder(): ReactElement {
+  return (
+    <svg
+      className="rbs:viewfinder"
+      viewBox="0 0 100 100"
+      fill="none"
+      strokeLinecap="round"
+      stroke="rgba(255, 0, 0, 0.5)"
+      strokeWidth={3}
+      aria-hidden="true"
+    >
+      <path
+        fill="rgba(0, 0, 0, 0.3)"
+        stroke="none"
+        fillRule="evenodd"
+        d="M0 0h100v100H0zM10 10h80v80H10z"
+      />
+      <path d="M23,10 L10,10 L10,23" />
+      <path d="M10,77 L10,90 L23,90" />
+      <path d="M77,90 L90,90 L90,77" />
+      <path d="M90,23 L90,10 L77,10" />
+    </svg>
+  );
+}

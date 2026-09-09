@@ -11,7 +11,7 @@ let config: UserConfig = defineConfig({
   resolve: {
     alias: {
       "@thewirv/react-barcode-scanner": fileURLToPath(
-        new URL("../../packages/react-barcode-scanner/src/index.ts", import.meta.url)
+        new URL("../../packages/react-barcode-scanner/src/index.tsx", import.meta.url)
       )
     }
   }
