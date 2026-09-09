@@ -11,6 +11,7 @@ React component for scanning barcodes from a camera.
   - [pnpm](#pnpm)
   - [yarn](#yarn)
   - [npm](#npm)
+- [Upgrading to 5.0](#upgrading-to-50)
 - [Upgrading to 4.0](#upgrading-to-40)
 - [Example Usage](#example-usage)
 - [BarcodeScanner API](#component-api)
@@ -63,6 +64,19 @@ yarn add @thewirv/react-barcode-scanner
 npm i --save @thewirv/react-barcode-scanner
 ```
 
+## Upgrading to 5.0
+
+5.0 defaults the camera to a square preview: `{ facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 720 }, aspectRatio: { ideal: 1 } }`. Passing `constraints` replaces that whole default.
+
+`Viewfinder` is a component or `null`. A React element no longer works. Omit it for the built-in overlay, or pass `null` to hide it.
+
+Layout is CSS (`dist/style.css`), imported from the package JS. `doScan={false}` or a camera error unmounts the video and shows camera-off. A retry needs `doScan` toggled, different constraint values, or a remount.
+
+Full notes are in [CHANGELOG.md](CHANGELOG.md).
+
+<details>
+<summary>Upgrading to 4.0</summary>
+
 ## Upgrading to 4.0
 
 4.0 is ESM-only. Use `import { BarcodeScanner } from '@thewirv/react-barcode-scanner'`. `require()` does not work, and the 3.x `development` / `production` export conditions are gone.
@@ -72,6 +86,7 @@ npm i --save @thewirv/react-barcode-scanner
 The camera session no longer restarts when parent callback identities change. The stream stops on unmount, `doScan={false}`, and constraint changes compared by value.
 
 Full notes are in [CHANGELOG.md](CHANGELOG.md).
+</details>
 
 ## Example Usage
 

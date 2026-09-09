@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-09-09
+
+### Breaking
+
+- Default camera is now a square 720×720 ideal preview (see default `constraints` below).
+- Default `constraints` are `{ facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 720 }, aspectRatio: { ideal: 1 } }`. 4.x was `{ facingMode: 'environment' }`. Passing this prop still replaces the whole default.
+- `Viewfinder` is a component type or `null`. A React element no longer works. Omit it for the built-in overlay. Pass `null` to hide it.
+- Layout is CSS classes (`rbs:*`) and `dist/style.css`, imported from the package JS. The old inline `STYLES` object is gone.
+- `doScan={false}` or a failure unmounts `<video>` and shows camera-off. A retry needs `doScan` false then true, constraint values that `deepEqual` treats as different, or a remount.
+
+### Added
+
+- Built-in viewfinder, a dimmed loader until `HAVE_ENOUGH_DATA`, and a camera-off idle view.
+- `exports["./style.css"]` points at `dist/style.css`.
+
+### Changed
+
+- `onLoad` fires when the preview has `HAVE_ENOUGH_DATA`.
+- An object `videoProps` replaces the default video attributes, including `style` and `className`. Loaded-data handling stays with the library.
+
 ## [4.0.1] - 2026-09-08
 
 ### Fixed
@@ -119,6 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Earlier git tags exist (`v2.2.0` through `v1.1.0`, plus `1.2.0`) and have no GitHub Release notes.
 
+[5.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.1...v5.0.0
 [4.0.1]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v3.4.0...v4.0.0
 [3.4.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v3.3.5...v3.4.0
