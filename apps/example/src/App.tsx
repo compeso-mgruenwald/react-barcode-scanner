@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { BarcodeScanner } from "./components/BarcodeScanner";
-import "./App.css";
 
 export function App() {
   let [lastScan, setLastScan] = useState("No result");
 
   return (
-    <>
-      <h1>Barcode Scanner</h1>
-      <div className="card">
+    <main className="mx-auto max-w-7xl p-8 text-center">
+      <h1 className="text-[3.2em] leading-tight">Barcode Scanner</h1>
+      <div className="p-8">
         <BarcodeScanner
           onScan={(text) => {
             setLastScan(text);
@@ -16,6 +15,6 @@ export function App() {
         />
         <p>{lastScan}</p>
       </div>
-    </>
+    </main>
   );
 }

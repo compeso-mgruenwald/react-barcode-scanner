@@ -1,13 +1,23 @@
 import type { ReactElement } from "react";
+import { joinClassNames } from "../utils/joinClassNames";
 import "./CameraLoading.css";
 
 const ICON_SIZE = 72;
 
-export function CameraLoading(): ReactElement {
+interface Props {
+  className?: string;
+  iconClassName?: string;
+}
+
+export function CameraLoading({ className, iconClassName }: Props): ReactElement {
   return (
-    <div className="rbs:camera-loading" role="status" aria-label="Loading camera">
+    <div
+      className={joinClassNames("rbs:camera-loading", className)}
+      role="status"
+      aria-label="Loading camera"
+    >
       <svg
-        className="rbs:camera-loading-icon"
+        className={joinClassNames("rbs:camera-loading-icon", iconClassName)}
         width={ICON_SIZE}
         height={ICON_SIZE}
         viewBox="0 0 24 24"

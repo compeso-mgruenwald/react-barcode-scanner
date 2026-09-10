@@ -1,10 +1,11 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite-plus";
 import type { UserConfig } from "vite-plus";
 
 let config: UserConfig = defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     open: true
   },

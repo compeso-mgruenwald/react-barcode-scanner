@@ -24,7 +24,8 @@ export default defineConfig({
         ["internal", "parent", "sibling", "index"],
         "unknown"
       ]
-    }
+    },
+    sortTailwindcss: true
   },
   lint: {
     plugins: ["eslint", "typescript", "unicorn", "oxc", "react", "import"],

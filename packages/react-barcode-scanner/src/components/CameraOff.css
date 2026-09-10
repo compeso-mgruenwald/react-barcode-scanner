@@ -1,18 +1,20 @@
-.rbs\:camera-off {
-  border: 8px #eee solid;
-  border-radius: 5px;
-  display: flex;
-  position: absolute;
-  inset: 0;
-  justify-content: center;
-  align-items: center;
-  box-sizing: border-box;
-}
+@layer react-barcode-scanner {
+  .rbs\:camera-off {
+    border: 8px #eee solid;
+    border-radius: 5px;
+    display: flex;
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+  }
 
-.rbs\:camera-off-icon {
-  width: 65%;
-  height: 65%;
-  display: block;
-  opacity: 0.2;
-  margin: 0 auto;
+  .rbs\:camera-off-icon {
+    width: 65%;
+    height: 65%;
+    display: block;
+    opacity: 0.2;
+    margin: 0 auto;
+  }
 }

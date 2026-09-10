@@ -32,9 +32,10 @@ export interface BarcodeScannerProps {
   onLoad?: () => void;
   /**
    * Rendered over the video after HAVE_ENOUGH_DATA. Default is the built-in overlay.
-   * Pass null to hide it.
+   * Pass null to hide it. The default overlay joins rbs:viewfinder with
+   * viewfinderClassName. A custom component may take className or ignore it.
    */
-  Viewfinder?: ComponentType | null;
+  Viewfinder?: ComponentType<{ className?: string }> | null;
   /**
    * Styles for the wrapping section. Applied after the rbs:container class
    * (aspect-ratio 1, width 100%). A set height drops the ratio because width
@@ -43,17 +44,52 @@ export interface BarcodeScannerProps {
    */
   containerStyle?: CSSProperties;
   /**
+   * Appended after rbs:container. Does not replace the default class.
+   */
+  containerClassName?: string;
+  /**
    * Styles for the video wrapper, applied after the rbs:video-container class
    * (position absolute, inset 0, overflow hidden). Inline styles override the
    * class.
    */
   videoContainerStyle?: CSSProperties;
   /**
+   * Appended after rbs:video-container. Does not replace the default class.
+   */
+  videoContainerClassName?: string;
+  /**
    * Styles for the video, merged over the rbs:video class when videoProps is
    * omitted or is a function. An object videoProps replaces the defaults,
    * including className, so this is ignored. Inline styles override the class.
    */
   videoStyle?: CSSProperties;
+  /**
+   * Appended after rbs:video in the default video className, before videoProps
+   * runs. An object videoProps replaces className. A function videoProps sees
+   * the merged string.
+   */
+  videoClassName?: string;
+  /**
+   * Appended after rbs:camera-loading. Does not replace the default class.
+   */
+  cameraLoadingClassName?: string;
+  /**
+   * Appended after rbs:camera-loading-icon. Does not replace the default class.
+   */
+  cameraLoadingIconClassName?: string;
+  /**
+   * Appended after rbs:camera-off. Does not replace the default class.
+   */
+  cameraOffClassName?: string;
+  /**
+   * Appended after rbs:camera-off-icon. Does not replace the default class.
+   */
+  cameraOffIconClassName?: string;
+  /**
+   * Passed to Viewfinder as className. The default overlay appends it after
+   * rbs:viewfinder.
+   */
+  viewfinderClassName?: string;
   /**
    * Props to be passed to the used `<video />` element. An object replaces the default
    * attributes, including style and className, so videoStyle is ignored. Loaded-data

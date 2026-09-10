@@ -769,6 +769,7 @@ describe("BarcodeScanner", () => {
 
   it("replaces default video props when videoProps is an object", () => {
     let { container } = renderScanner({
+      videoClassName: "host-video",
       videoProps: { id: "override-video", muted: false }
     });
     let video = videoFrom(container);
@@ -776,6 +777,8 @@ describe("BarcodeScanner", () => {
     expect(video.id).toBe("override-video");
     expect(video.muted).toBe(false);
     expect(video.hasAttribute("playsinline")).toBe(false);
+    expect(video.classList.contains("rbs:video")).toBe(false);
+    expect(video.classList.contains("host-video")).toBe(false);
   });
 
   it("still dismisses the loader when videoProps is an object", async () => {
@@ -815,6 +818,81 @@ describe("BarcodeScanner", () => {
     expect(video.id).toBe("additive-video");
     expect(video.muted).toBe(true);
     expect(video.hasAttribute("playsinline")).toBe(true);
+  });
+
+  it("appends className props after the default rbs classes", () => {
+    let { container } = renderScanner({
+      doScan: false,
+      containerClassName: "host-container",
+      cameraOffClassName: "host-camera-off",
+      cameraOffIconClassName: "host-camera-off-icon"
+    });
+    let section = container.querySelector("section");
+    let cameraOff = getCameraOff(container);
+    let cameraOffIcon = container.getElementsByClassName("rbs:camera-off-icon")[0];
+
+    expect(section?.classList.contains("rbs:container")).toBe(true);
+    expect(section?.classList.contains("host-container")).toBe(true);
+    expect(cameraOff?.classList.contains("rbs:camera-off")).toBe(true);
+    expect(cameraOff?.classList.contains("host-camera-off")).toBe(true);
+    expect(cameraOffIcon?.classList.contains("host-camera-off-icon")).toBe(true);
+  });
+
+  it("appends video and loading className props after the default rbs classes", () => {
+    let { container } = renderScanner({
+      videoContainerClassName: "host-video-container",
+      videoClassName: "host-video",
+      cameraLoadingClassName: "host-loading",
+      cameraLoadingIconClassName: "host-loading-icon"
+    });
+    let video = videoFrom(container);
+    let wrapper = video.parentElement;
+    let loading = getLoading(container);
+    let loadingIcon = container.getElementsByClassName("rbs:camera-loading-icon")[0];
+
+    expect(wrapper?.classList.contains("rbs:video-container")).toBe(true);
+    expect(wrapper?.classList.contains("host-video-container")).toBe(true);
+    expect(video.classList.contains("rbs:video")).toBe(true);
+    expect(video.classList.contains("host-video")).toBe(true);
+    expect(loading?.classList.contains("rbs:camera-loading")).toBe(true);
+    expect(loading?.classList.contains("host-loading")).toBe(true);
+    expect(loadingIcon?.classList.contains("host-loading-icon")).toBe(true);
+  });
+
+  it("puts videoClassName in the videoProps function defaults", () => {
+    let received: string | undefined;
+    let { container } = renderScanner({
+      videoClassName: "host-video",
+      videoProps: (defaults) => {
+        received = defaults.className;
+        return defaults;
+      }
+    });
+
+    expect(received).toBe("rbs:video host-video");
+    expect(videoFrom(container).classList.contains("rbs:video")).toBe(true);
+    expect(videoFrom(container).classList.contains("host-video")).toBe(true);
+  });
+
+  it("appends viewfinderClassName after rbs:viewfinder", async () => {
+    mockDecodeAttachingStream();
+    let { container } = renderScanner({ viewfinderClassName: "host-viewfinder" });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    let viewfinder = container.getElementsByClassName("rbs:viewfinder")[0];
+
+    expect(viewfinder).toBeTruthy();
+    expect(viewfinder?.classList.contains("host-viewfinder")).toBe(true);
   });
 
   it("mirrors the user-facing camera", () => {

@@ -1,11 +1,20 @@
 import type { ReactElement } from "react";
 import { FiCameraOff } from "react-icons/fi";
+import { joinClassNames } from "../utils/joinClassNames";
 import "./CameraOff.css";
 
-export function CameraOff(): ReactElement {
+interface Props {
+  className?: string;
+  iconClassName?: string;
+}
+
+export function CameraOff({ className, iconClassName }: Props): ReactElement {
   return (
-    <div className="rbs:camera-off" role="img" aria-label="Camera off">
-      <FiCameraOff className="rbs:camera-off-icon" aria-hidden="true" />
+    <div className={joinClassNames("rbs:camera-off", className)} role="img" aria-label="Camera off">
+      <FiCameraOff
+        className={joinClassNames("rbs:camera-off-icon", iconClassName)}
+        aria-hidden="true"
+      />
     </div>
   );
 }

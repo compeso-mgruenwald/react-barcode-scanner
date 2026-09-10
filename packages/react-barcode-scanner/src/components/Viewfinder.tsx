@@ -1,10 +1,15 @@
 import type { ReactElement } from "react";
+import { joinClassNames } from "../utils/joinClassNames";
 import "./Viewfinder.css";
 
-export function Viewfinder(): ReactElement {
+interface Props {
+  className?: string;
+}
+
+export function Viewfinder({ className }: Props): ReactElement {
   return (
     <svg
-      className="rbs:viewfinder"
+      className={joinClassNames("rbs:viewfinder", className)}
       viewBox="0 0 100 100"
       fill="none"
       strokeLinecap="round"

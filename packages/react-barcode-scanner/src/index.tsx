@@ -7,6 +7,7 @@ import { Viewfinder as DefaultViewfinder } from "./components/Viewfinder";
 import type { BarcodeScannerProps as Props } from "./types";
 import { decodeBarcodeFromConstraints, stopVideoStream } from "./utils/decodeBarcode";
 import { deepEqual } from "./utils/deepEqual";
+import { joinClassNames } from "./utils/joinClassNames";
 import "./index.css";
 
 export type { BarcodeScannerProps } from "./types";
@@ -28,8 +29,16 @@ export function BarcodeScanner({
   onLoad,
   Viewfinder = DefaultViewfinder,
   containerStyle,
+  containerClassName,
   videoContainerStyle,
+  videoContainerClassName,
   videoStyle,
+  videoClassName,
+  cameraLoadingClassName,
+  cameraLoadingIconClassName,
+  cameraOffClassName,
+  cameraOffIconClassName,
+  viewfinderClassName,
   videoProps: passedVideoProps
 }: Props): ReactElement {
   let [isCameraInitialized, setIsCameraInitialized] = useState(false);
@@ -115,7 +124,7 @@ export function BarcodeScanner({
       playsInline: true,
       disablePictureInPicture: true,
       muted: true,
-      className: "rbs:video",
+      className: joinClassNames("rbs:video", videoClassName),
       style: {
         ...videoStyle,
         transform: `${videoStyle?.transform ?? ""} ${stableConstraints.facingMode === "user" ? "scaleX(-1)" : ""}`
@@ -127,7 +136,7 @@ export function BarcodeScanner({
     if (typeof passedVideoProps !== "function") return passedVideoProps;
 
     return passedVideoProps(defaultVideoProps);
-  }, [stableConstraints.facingMode, passedVideoProps, videoStyle]);
+  }, [stableConstraints.facingMode, passedVideoProps, videoStyle, videoClassName]);
 
   let passedOnLoadedData = videoProps.onLoadedData;
   let handleVideoLoadedData = useCallback<
@@ -151,19 +160,29 @@ export function BarcodeScanner({
   );
 
   return (
-    <section className="rbs:container" style={containerStyle}>
+    <section className={joinClassNames("rbs:container", containerClassName)} style={containerStyle}>
       {doScan && isScanAllowed ? (
-        <div className="rbs:video-container" style={videoContainerStyle}>
+        <div
+          className={joinClassNames("rbs:video-container", videoContainerClassName)}
+          style={videoContainerStyle}
+        >
           <video
             {...videoProps}
             ref={videoElement}
             aria-invalid="false"
             onLoadedData={handleVideoLoadedData}
           />
-          {isCameraInitialized ? !!Viewfinder && <Viewfinder /> : <CameraLoading />}
+          {isCameraInitialized ? (
+            !!Viewfinder && <Viewfinder className={viewfinderClassName} />
+          ) : (
+            <CameraLoading
+              className={cameraLoadingClassName}
+              iconClassName={cameraLoadingIconClassName}
+            />
+          )}
         </div>
       ) : (
-        <CameraOff />
+        <CameraOff className={cameraOffClassName} iconClassName={cameraOffIconClassName} />
       )}
     </section>
   );
