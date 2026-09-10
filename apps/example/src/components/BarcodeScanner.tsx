@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import type { ReactNode } from "react";
 import { BarcodeScanner as ReactBarcodeScanner } from "@thewirv/react-barcode-scanner";
 
@@ -8,20 +8,18 @@ interface Props {
   onError?: () => void;
 }
 
-const DIMENSIONS = {
-  width: 500,
-  height: 500
-};
-
 function BarcodeScannerComponent({ description, onScan, onError }: Props) {
   let [doScan, setDoScan] = useState(true);
   let [error, setError] = useState("");
 
-  useEffect(() => {
-    if (error) {
-      console.error(error);
-    }
-  }, [error]);
+  function handleScanAgain() {
+    setError("");
+    setDoScan(true);
+  }
+
+  function handleStop() {
+    setDoScan(false);
+  }
 
   return (
     <>
@@ -43,17 +41,27 @@ function BarcodeScannerComponent({ description, onScan, onError }: Props) {
             errorMessage = "Camera not found!";
           } else if (scanError.name.includes("IndexSizeError")) {
             errorMessage = "Scanner error";
+          } else {
+            errorMessage = scanError.message;
           }
 
           setDoScan(false);
           setError(errorMessage);
           onError?.();
         }}
-        containerStyle={DIMENSIONS}
+        onLoad={() => console.log("Video feed has loaded!")}
+        containerStyle={{ width: "100%" }}
       />
-      <button onMouseDown={() => setDoScan((prev) => !prev)} style={{ marginTop: 12 }}>
-        Toggle
-      </button>
+      {error && <p role="alert">{error}</p>}
+      {doScan ? (
+        <button type="button" onClick={handleStop} style={{ marginTop: 12 }}>
+          Stop
+        </button>
+      ) : (
+        <button type="button" onClick={handleScanAgain} style={{ marginTop: 12 }}>
+          {error ? "Retry" : "Scan again"}
+        </button>
+      )}
     </>
   );
 }

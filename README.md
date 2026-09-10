@@ -117,6 +117,8 @@ function Test(props: Props) {
 }
 ```
 
+For a fuller host that stops after a hit or error and starts again by taking `doScan` false then true, see [`apps/example`](apps/example).
+
 ## Component API
 
 The `BarcodeScanner` component has the following props:
