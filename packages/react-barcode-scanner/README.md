@@ -59,7 +59,7 @@ See the [example app](https://github.com/compeso-mgruenwald/react-barcode-scanne
 
 Set `--rbs-*` on any ancestor, or on `.rbs:container` through `containerClassName`.
 
-Name `react-barcode-scanner` in your `@layer` list so later layers override the shipped rules. See [disabling Preflight](https://tailwindcss.com/docs/preflight#disabling-preflight).
+Name `react-barcode-scanner` in your `@layer` list so later layers override the shipped rules. See [disabling Preflight](https://tailwindcss.com/docs/preflight#disabling-preflight) if using Tailwind CSS.
 
 `--rbs-aspect-ratio` changes the layout box only. Default camera `constraints` stay square. `object-fit: cover` then crops a non-square frame. Set `--rbs-video-object-fit` if you want the whole frame.
 
