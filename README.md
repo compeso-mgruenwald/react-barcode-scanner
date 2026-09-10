@@ -155,7 +155,7 @@ Please, open an [issue](https://github.com/compeso-mgruenwald/react-barcode-scan
 
 ## Contributing
 
-We build this with [pnpm](https://pnpm.io) 12 and [Vite+](https://viteplus.dev). The published library is in `packages/react-barcode-scanner`. `apps/example` is a Vite+ app for trying the scanner in a browser. Root `package.json` declares `devEngines.packageManager` as pnpm `^12.3.4`. Install a matching pnpm yourself. Shared fmt and lint settings are in the root `vite.config.ts`.
+We build this with [pnpm](https://pnpm.io) 12 and [Vite+](https://viteplus.dev). The published library is in `packages/react-barcode-scanner`. `apps/example` is a Vite+ app for trying the scanner in a browser. Install pnpm yourself (`pnpm self-update` or the standalone installer). Shared fmt and lint settings are in the root `vite.config.ts`.
 
 ```bash
 pnpm install

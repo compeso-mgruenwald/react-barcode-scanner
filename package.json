@@ -34,12 +34,5 @@
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vite-plus": "0.3.0"
-  },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^12.3.4",
-      "onFail": "error"
-    }
   }
 }

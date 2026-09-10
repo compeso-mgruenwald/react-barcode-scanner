@@ -15,4 +15,4 @@ overrides:
   vitest: "4.1.11"
 
 minimumReleaseAge: 2880 # 2 days, same policy as bunfig + Dependabot
-pmOnFail: error
+pmOnFail: ignore
