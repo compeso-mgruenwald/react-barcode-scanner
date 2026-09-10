@@ -24,7 +24,7 @@
     "check": "pnpm vp-check && pnpm build && pnpm test && vp -C apps/example build",
     "check:agents": "pnpm vp-check && pnpm build",
     "test": "vp -C packages/react-barcode-scanner test --coverage",
-    "prepare": "bun run husky"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
