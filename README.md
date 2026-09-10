@@ -93,11 +93,11 @@ Full notes are in [CHANGELOG.md](CHANGELOG.md).
 The preview is square and fills the parent width. Layout defaults ship as CSS (`dist/style.css`), imported from the package JS. `doScan={false}` or a camera error swaps in the idle camera view. Until the stream has `HAVE_ENOUGH_DATA`, a dimmed loader sits on the video.
 
 ```typescript
-import {useState} from 'react';
-import {BarcodeScanner} from '@thewirv/react-barcode-scanner';
+import { useState } from "react";
+import { BarcodeScanner } from "@thewirv/react-barcode-scanner";
 
 function Test(props: Props) {
-  const [data, setData] = useState('No result');
+  let [data, setData] = useState("No result");
 
   return (
     <>
@@ -108,8 +108,8 @@ function Test(props: Props) {
             console.error(error.message);
           }
         }}
-        onLoad={() => console.log('Video feed has loaded!')}
-        containerStyle={{width: '100%'}}
+        onLoad={() => console.log("Video feed has loaded!")}
+        containerStyle={{ width: "100%" }}
       />
       <p>{data}</p>
     </>
