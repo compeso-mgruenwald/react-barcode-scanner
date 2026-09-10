@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2026-09-10
+
+### Breaking
+
+- `containerStyle`, `videoContainerStyle`, and `videoStyle` are gone. Use `*ClassName` and `--rbs-*`.
+- Layout CSS is `@layer react-barcode-scanner`. Name that layer in your `@layer` list so later layers override the shipped rules.
+- `rbs:video` and `videoClassName` stay on `<video>` after `videoProps`. `videoProps.className` is ignored.
+- A function `videoProps` no longer receives `className` or `style` in its defaults.
+- A user-facing camera uses `rbs:video-mirrored` (`scale: -1 1`) instead of an inline `transform`.
+
+### Added
+
+- `containerClassName`, `videoContainerClassName`, `videoClassName`, `cameraLoadingClassName`, `cameraLoadingIconClassName`, `cameraOffClassName`, `cameraOffIconClassName`, and `viewfinderClassName`. Each appends after the matching `rbs:*` class.
+- `--rbs-*` custom properties for size, radius, object-fit, viewfinder paint, loader, and camera-off.
+- `rbs:video-mirrored` for `facingMode: "user"`.
+
+### Changed
+
+- The repo builds with pnpm 12 (was bun).
+
 ## [5.0.0] - 2026-09-09
 
 ### Breaking
@@ -139,6 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Earlier git tags exist (`v2.2.0` through `v1.1.0`, plus `1.2.0`) and have no GitHub Release notes.
 
+[6.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v5.0.0...v6.0.0
 [5.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.1...v5.0.0
 [4.0.1]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v3.4.0...v4.0.0

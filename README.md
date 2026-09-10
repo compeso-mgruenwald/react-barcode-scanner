@@ -115,6 +115,19 @@ Scanning runs while `doScan` is true and no error has fired. After an error, set
 
 ## Migration
 
+### Upgrade to 6.0
+
+6.0 drops `containerStyle`, `videoContainerStyle`, and `videoStyle`. Use `*ClassName` and `--rbs-*`.
+
+Layout CSS is `@layer react-barcode-scanner`. `rbs:video` and `videoClassName` stay on the element even when `videoProps` is an object. `videoProps.className` is ignored.
+
+A user-facing camera gets `rbs:video-mirrored` instead of an inline transform.
+
+Full notes are in the [6.0.0 changelog](CHANGELOG.md#600---2026-09-10).
+
+<details>
+<summary>Upgrade to 5.0</summary>
+
 ### Upgrade to 5.0
 
 5.0 defaults the camera to a square preview: `{ facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 720 }, aspectRatio: { ideal: 1 } }`. Passing `constraints` replaces that whole default.
@@ -124,6 +137,7 @@ Scanning runs while `doScan` is true and no error has fired. After an error, set
 Layout is CSS (`dist/style.css`), imported from the package JS. `doScan={false}` or a camera error unmounts the video and shows camera-off. A retry needs `doScan` toggled, different constraint values, or a remount.
 
 Full notes are in the [5.0.0 changelog](CHANGELOG.md#500---2026-09-09).
+</details>
 
 <details>
 <summary>Upgrade to 4.0</summary>
