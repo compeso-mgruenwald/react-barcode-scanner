@@ -28,11 +28,8 @@ export function BarcodeScanner({
   onError,
   onLoad,
   Viewfinder = DefaultViewfinder,
-  containerStyle,
   containerClassName,
-  videoContainerStyle,
   videoContainerClassName,
-  videoStyle,
   videoClassName,
   cameraLoadingClassName,
   cameraLoadingIconClassName,
@@ -123,12 +120,7 @@ export function BarcodeScanner({
     let defaultVideoProps: VideoHTMLAttributes<HTMLVideoElement> = {
       playsInline: true,
       disablePictureInPicture: true,
-      muted: true,
-      className: joinClassNames("rbs:video", videoClassName),
-      style: {
-        ...videoStyle,
-        transform: `${videoStyle?.transform ?? ""} ${stableConstraints.facingMode === "user" ? "scaleX(-1)" : ""}`
-      }
+      muted: true
     };
 
     if (!passedVideoProps) return defaultVideoProps;
@@ -136,7 +128,7 @@ export function BarcodeScanner({
     if (typeof passedVideoProps !== "function") return passedVideoProps;
 
     return passedVideoProps(defaultVideoProps);
-  }, [stableConstraints.facingMode, passedVideoProps, videoStyle, videoClassName]);
+  }, [passedVideoProps]);
 
   let passedOnLoadedData = videoProps.onLoadedData;
   let handleVideoLoadedData = useCallback<
@@ -160,15 +152,17 @@ export function BarcodeScanner({
   );
 
   return (
-    <section className={joinClassNames("rbs:container", containerClassName)} style={containerStyle}>
+    <section className={joinClassNames("rbs:container", containerClassName)}>
       {doScan && isScanAllowed ? (
-        <div
-          className={joinClassNames("rbs:video-container", videoContainerClassName)}
-          style={videoContainerStyle}
-        >
+        <div className={joinClassNames("rbs:video-container", videoContainerClassName)}>
           <video
             {...videoProps}
             ref={videoElement}
+            className={joinClassNames(
+              "rbs:video",
+              stableConstraints.facingMode === "user" ? "rbs:video-mirrored" : undefined,
+              videoClassName
+            )}
             aria-invalid="false"
             onLoadedData={handleVideoLoadedData}
           />

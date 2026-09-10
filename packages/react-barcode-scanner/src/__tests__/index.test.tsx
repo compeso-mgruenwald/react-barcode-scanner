@@ -659,16 +659,12 @@ describe("BarcodeScanner", () => {
     expect(getLoading(container)).not.toBeNull();
   });
 
-  it("renders a Viewfinder after the camera is initialized and applies container styles", async () => {
+  it("renders a Viewfinder after the camera is initialized", async () => {
     mockDecodeAttachingStream();
     let { container, getByTestId } = renderScanner({
-      Viewfinder: CustomViewfinder,
-      containerStyle: { width: "321px" },
-      videoContainerStyle: { height: "240px" }
+      Viewfinder: CustomViewfinder
     });
 
-    expect(container.querySelector("section")?.style.width).toBe("321px");
-    expect(videoFrom(container).parentElement?.style.height).toBe("240px");
     expect(container.querySelector("[data-testid=viewfinder]")).toBeNull();
     expect(getLoading(container)).not.toBeNull();
 
@@ -730,29 +726,13 @@ describe("BarcodeScanner", () => {
     expect(getLoading(container)).toBeNull();
   });
 
-  it("keeps a square section by default and when only width is set", () => {
-    let { container, rerender, onSuccess, onError } = renderScanner();
+  it("keeps a square section by default", () => {
+    let { container } = renderScanner();
     let section = container.querySelector("section");
 
     expect(section?.classList.contains("rbs:container")).toBe(true);
     expect(section?.style.aspectRatio).toBe("");
     expect(section?.style.width).toBe("");
-
-    rerender(
-      <BarcodeScanner containerStyle={{ width: "100%" }} onSuccess={onSuccess} onError={onError} />
-    );
-
-    expect(container.querySelector("section")?.classList.contains("rbs:container")).toBe(true);
-    expect(container.querySelector("section")?.style.width).toBe("100%");
-  });
-
-  it("lets containerStyle override the default aspect ratio", () => {
-    let { container } = renderScanner({
-      containerStyle: { aspectRatio: "16 / 9" }
-    });
-
-    expect(container.querySelector("section")?.classList.contains("rbs:container")).toBe(true);
-    expect(container.querySelector("section")?.style.aspectRatio).toBe("16 / 9");
   });
 
   it("covers the video box inside an absolutely filled wrapper", () => {
@@ -770,15 +750,16 @@ describe("BarcodeScanner", () => {
   it("replaces default video props when videoProps is an object", () => {
     let { container } = renderScanner({
       videoClassName: "host-video",
-      videoProps: { id: "override-video", muted: false }
+      videoProps: { id: "override-video", muted: false, className: "from-video-props" }
     });
     let video = videoFrom(container);
 
     expect(video.id).toBe("override-video");
     expect(video.muted).toBe(false);
     expect(video.hasAttribute("playsinline")).toBe(false);
-    expect(video.classList.contains("rbs:video")).toBe(false);
-    expect(video.classList.contains("host-video")).toBe(false);
+    expect(video.classList.contains("rbs:video")).toBe(true);
+    expect(video.classList.contains("host-video")).toBe(true);
+    expect(video.classList.contains("from-video-props")).toBe(false);
   });
 
   it("still dismisses the loader when videoProps is an object", async () => {
@@ -859,7 +840,7 @@ describe("BarcodeScanner", () => {
     expect(loadingIcon?.classList.contains("host-loading-icon")).toBe(true);
   });
 
-  it("puts videoClassName in the videoProps function defaults", () => {
+  it("keeps video classes off videoProps function defaults", () => {
     let received: string | undefined;
     let { container } = renderScanner({
       videoClassName: "host-video",
@@ -869,7 +850,7 @@ describe("BarcodeScanner", () => {
       }
     });
 
-    expect(received).toBe("rbs:video host-video");
+    expect(received).toBeUndefined();
     expect(videoFrom(container).classList.contains("rbs:video")).toBe(true);
     expect(videoFrom(container).classList.contains("host-video")).toBe(true);
   });
@@ -896,14 +877,29 @@ describe("BarcodeScanner", () => {
   });
 
   it("mirrors the user-facing camera", () => {
-    let { container } = renderScanner({
-      constraints: { facingMode: "user" },
-      videoStyle: { transform: "rotate(90deg)" }
+    let { container, rerender, onSuccess, onError } = renderScanner({
+      constraints: { facingMode: "user" }
     });
-    let transform = videoFrom(container).style.transform;
 
-    expect(transform).toContain("scaleX(-1)");
-    expect(transform).toContain("rotate(90deg)");
+    expect(videoFrom(container).classList.contains("rbs:video-mirrored")).toBe(true);
+
+    rerender(
+      <BarcodeScanner
+        constraints={{ facingMode: "user" }}
+        videoProps={{ id: "override-video" }}
+        onSuccess={onSuccess}
+        onError={onError}
+      />
+    );
+
+    expect(videoFrom(container).classList.contains("rbs:video-mirrored")).toBe(true);
+    expect(videoFrom(container).classList.contains("rbs:video")).toBe(true);
+  });
+
+  it("does not mirror the rear camera", () => {
+    let { container } = renderScanner();
+
+    expect(videoFrom(container).classList.contains("rbs:video-mirrored")).toBe(false);
   });
 
   it("initializes the camera and calls onLoad when the video has enough data", async () => {

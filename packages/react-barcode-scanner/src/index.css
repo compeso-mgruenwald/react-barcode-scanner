@@ -19,4 +19,8 @@
     display: block;
     object-fit: var(--rbs-video-object-fit, cover);
   }
+
+  .rbs\:video-mirrored {
+    scale: -1 1;
+  }
 }

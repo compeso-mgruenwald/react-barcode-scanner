@@ -1,4 +1,4 @@
-import type { ComponentType, CSSProperties, VideoHTMLAttributes } from "react";
+import type { ComponentType, VideoHTMLAttributes } from "react";
 
 export interface BarcodeScannerProps {
   /**
@@ -37,36 +37,15 @@ export interface BarcodeScannerProps {
    */
   Viewfinder?: ComponentType<{ className?: string }> | null;
   /**
-   * Styles for the wrapping section. Applied after the rbs:container class
-   * (aspect-ratio 1, width 100%). A set height drops the ratio because width
-   * is already 100%. Pass aspectRatio to change it. Inline styles override
-   * the class.
-   */
-  containerStyle?: CSSProperties;
-  /**
    * Appended after rbs:container. Does not replace the default class.
    */
   containerClassName?: string;
-  /**
-   * Styles for the video wrapper, applied after the rbs:video-container class
-   * (position absolute, inset 0, overflow hidden). Inline styles override the
-   * class.
-   */
-  videoContainerStyle?: CSSProperties;
   /**
    * Appended after rbs:video-container. Does not replace the default class.
    */
   videoContainerClassName?: string;
   /**
-   * Styles for the video, merged over the rbs:video class when videoProps is
-   * omitted or is a function. An object videoProps replaces the defaults,
-   * including className, so this is ignored. Inline styles override the class.
-   */
-  videoStyle?: CSSProperties;
-  /**
-   * Appended after rbs:video in the default video className, before videoProps
-   * runs. An object videoProps replaces className. A function videoProps sees
-   * the merged string.
+   * Appended after rbs:video. Does not replace the default class.
    */
   videoClassName?: string;
   /**
@@ -92,9 +71,8 @@ export interface BarcodeScannerProps {
   viewfinderClassName?: string;
   /**
    * Props to be passed to the used `<video />` element. An object replaces the default
-   * attributes, including style and className, so videoStyle is ignored. Loaded-data
-   * handling stays with the library so the loader can clear. A function receives
-   * the defaults and can extend them.
+   * attributes. Loaded-data handling stays with the library so the loader can clear.
+   * A function receives the defaults and can extend them.
    *
    * Check `defaultVideoProps` inside `src/index.tsx` to see which props are passed by default.
    */
