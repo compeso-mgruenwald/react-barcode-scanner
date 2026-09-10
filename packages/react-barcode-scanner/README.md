@@ -153,17 +153,17 @@ Please, open an [issue](https://github.com/compeso-mgruenwald/react-barcode-scan
 
 ## Contributing
 
-We build this with [bun](https://bun.sh) and [Vite+](https://viteplus.dev). This repo is a bun workspace: the published library lives in `packages/react-barcode-scanner`, and `apps/example` is a Vite+ app for trying the scanner in a browser. The bun version is pinned under `devEngines` in the root `package.json`. Shared fmt and lint settings are in the root `vite.config.ts`.
+We build this with [pnpm](https://pnpm.io) 12 and [Vite+](https://viteplus.dev). The published library is in `packages/react-barcode-scanner`. `apps/example` is a Vite+ app for trying the scanner in a browser. Root `package.json` declares `devEngines.packageManager` as pnpm `^12.3.4`. Install a matching pnpm yourself. Shared fmt and lint settings are in the root `vite.config.ts`.
 
 ```bash
-bun install
-bun run fmt
-bun run lint:fix
-bun run check
-bun run dev
+pnpm install
+pnpm fmt
+pnpm lint:fix
+pnpm check
+pnpm dev
 ```
 
-`bun run check` runs Vite+ check (fmt + lint + types) over the workspace, packs the library, runs tests, then builds the example. `bun run dev` starts the example app. Use [Conventional Commits](https://www.conventionalcommits.org/). Other scripts are in the root `package.json`.
+`pnpm check` runs Vite+ check (fmt + lint + types) over the workspace, packs the library, runs tests, then builds the example. `pnpm dev` starts the example app. Use [Conventional Commits](https://www.conventionalcommits.org/). Other scripts are in the root `package.json`.
 
 ## License
 

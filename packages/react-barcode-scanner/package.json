@@ -47,9 +47,9 @@
   },
   "scripts": {
     "build": "vp pack",
-    "prepublishOnly": "bun run build",
+    "prepublishOnly": "pnpm build",
     "test": "vp test --coverage",
-    "check": "vp check && bun run build && bun run test"
+    "check": "vp check && pnpm build && pnpm test"
   },
   "dependencies": {
     "@zxing/browser": "^0.2.1",
@@ -65,7 +65,9 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-icons": "^5.7.0",
-    "unplugin-unused": "^0.5.0"
+    "typescript": "catalog:",
+    "unplugin-unused": "^0.5.0",
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "react": "^16.8.0 || 17.x || 18.x || 19.x",

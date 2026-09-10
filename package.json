@@ -12,18 +12,6 @@
     "type": "git",
     "url": "git+https://github.com/compeso-mgruenwald/react-barcode-scanner.git"
   },
-  "workspaces": {
-    "packages": [
-      "packages/*",
-      "apps/*"
-    ],
-    "catalog": {
-      "react": "^19.2.8",
-      "react-dom": "^19.2.8",
-      "@types/react": "^19.2.18",
-      "@types/react-dom": "^19.2.7"
-    }
-  },
   "type": "module",
   "scripts": {
     "build": "vp -C packages/react-barcode-scanner pack",
@@ -33,8 +21,8 @@
     "lint:fix": "vp lint --fix",
     "lint:incl-warnings": "vp lint",
     "vp-check": "vp check",
-    "check": "bun run vp-check && bun run build && bun run test && vp -C apps/example build",
-    "check:agents": "bun run vp-check && bun run build",
+    "check": "pnpm vp-check && pnpm build && pnpm test && vp -C apps/example build",
+    "check:agents": "pnpm vp-check && pnpm build",
     "test": "vp -C packages/react-barcode-scanner test --coverage",
     "prepare": "bun run husky"
   },
@@ -47,15 +35,11 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vite-plus": "0.3.0"
   },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
-    "vitest": "4.1.11"
-  },
   "devEngines": {
     "packageManager": {
-      "name": "bun",
-      "version": "1.4.2",
-      "onFail": "download"
+      "name": "pnpm",
+      "version": "^12.3.4",
+      "onFail": "error"
     }
   }
 }
