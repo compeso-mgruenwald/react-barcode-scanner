@@ -17,6 +17,11 @@
     }
   },
   "languages": {
+    "CSS": {
+      "format_on_save": "on",
+      "prettier": { "allowed": false },
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
     "JavaScript": {
       "format_on_save": "on",
       "prettier": { "allowed": false },
@@ -29,12 +34,12 @@
         "..."
       ]
     },
-    "JSON": {
+    "HTML": {
       "format_on_save": "on",
       "prettier": { "allowed": false },
       "formatter": [{ "language_server": { "name": "oxfmt" } }]
     },
-    "CSS": {
+    "JSON": {
       "format_on_save": "on",
       "prettier": { "allowed": false },
       "formatter": [{ "language_server": { "name": "oxfmt" } }]
