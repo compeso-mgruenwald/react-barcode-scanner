@@ -19,8 +19,11 @@ const CONSTRAINTS: MediaTrackConstraints = { facingMode: "environment" };
 type ScanFn = BrowserMultiFormatReader["scan"];
 
 class TestReader extends BrowserMultiFormatReader {
-  constructor(private readonly scanImpl: ScanFn) {
+  private readonly scanImpl: ScanFn;
+
+  constructor(scanImpl: ScanFn) {
     super();
+    this.scanImpl = scanImpl;
   }
 
   scan(...args: Parameters<ScanFn>) {
