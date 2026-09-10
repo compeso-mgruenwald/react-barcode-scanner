@@ -14,3 +14,8 @@
   --color-button-light: #f9f9f9;
   --color-ink-light: #213547;
 }
+
+:root {
+  --rbs-viewfinder-overlay: color-mix(in oklab, var(--color-indigo-800) 30%, transparent);
+  --rbs-camera-loading-icon-color: #a3e635;
+}

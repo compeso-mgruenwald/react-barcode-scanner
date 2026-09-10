@@ -54,8 +54,8 @@ function BarcodeScannerComponent({ description, onScan, onError }: Props) {
         containerStyle={{ width: "100%" }}
         videoClassName="rounded-xl"
         videoContainerClassName="rounded-xl"
-        viewfinderClassName="stroke-lime-400"
-        cameraOffClassName="border-indigo-400"
+        viewfinderClassName="stroke-indigo-800"
+        cameraOffClassName="border-rose-900/30"
       />
       {error && <p role="alert">{error}</p>}
       {doScan ? (

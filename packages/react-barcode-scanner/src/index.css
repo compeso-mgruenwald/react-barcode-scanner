@@ -1,9 +1,10 @@
 @layer react-barcode-scanner {
   .rbs\:container {
-    aspect-ratio: 1;
-    width: 100%;
+    aspect-ratio: var(--rbs-aspect-ratio, 1);
+    width: var(--rbs-width, 100%);
     overflow: hidden;
     position: relative;
+    border-radius: var(--rbs-border-radius, 0);
   }
 
   .rbs\:video-container {
@@ -16,6 +17,6 @@
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: cover;
+    object-fit: var(--rbs-video-object-fit, cover);
   }
 }

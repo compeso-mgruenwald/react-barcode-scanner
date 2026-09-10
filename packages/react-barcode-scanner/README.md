@@ -14,6 +14,7 @@ React component for scanning barcodes from a camera.
 - [Upgrading to 5.0](#upgrading-to-50)
 - [Upgrading to 4.0](#upgrading-to-40)
 - [Example Usage](#example-usage)
+- [Theming](#theming)
 - [BarcodeScanner API](#component-api)
 - [Browser support](#browser-support)
 - [Issues](#issues)
@@ -90,9 +91,9 @@ Full notes are in [CHANGELOG.md](https://github.com/compeso-mgruenwald/react-bar
 
 ## Example Usage
 
-The preview is square and fills the parent width. Layout defaults ship as CSS (`dist/style.css`) in `@layer react-barcode-scanner`, imported from the package JS. Name that layer in your own `@layer` order so later layers override these rules. `doScan={false}` or a camera error swaps in the idle camera view. Until the stream has `HAVE_ENOUGH_DATA`, a dimmed loader sits on the video.
+The preview is square and fills the parent width. Layout defaults ship as CSS (`dist/style.css`) in `@layer react-barcode-scanner`, imported from the package JS. `doScan={false}` or a camera error swaps in the idle camera view. Until the stream has `HAVE_ENOUGH_DATA`, a dimmed loader sits on the video.
 
-```typescript
+```tsx
 import { useState } from "react";
 import { BarcodeScanner } from "@thewirv/react-barcode-scanner";
 
@@ -118,6 +119,40 @@ function Test(props: Props) {
 ```
 
 For a fuller host that stops after a hit or error and starts again by taking `doScan` false then true, see [`apps/example`](../../apps/example).
+
+## Theming
+
+Set `--rbs-*` custom properties on any ancestor, or on `.rbs:container` through `containerClassName`. The shipped CSS is `property: var(--rbs-…, <default>)`. An inherited value is enough. Layer order and class specificity do not apply to these.
+
+`*ClassName` props still append after the default `rbs:*` classes. Those follow `@layer` order. Name `react-barcode-scanner` in your `@layer` list so later layers override the shipped rules. See [disabling Preflight](https://tailwindcss.com/docs/preflight#disabling-preflight).
+
+`--rbs-aspect-ratio` changes the layout box only. Default camera `constraints` stay square. `object-fit: cover` then crops a non-square frame. Set `--rbs-video-object-fit` if you want the whole frame. A set `height` on the container still drops the ratio, because width is already filled.
+
+```css
+:root {
+  --rbs-viewfinder-stroke: lime;
+  --rbs-camera-off-border-color: #4f46e5;
+}
+```
+
+| Custom property                   | Default                         | Applied on                 |
+| --------------------------------- | ------------------------------- | -------------------------- |
+| `--rbs-aspect-ratio`              | `1`                             | `.rbs:container`           |
+| `--rbs-width`                     | `100%`                          | `.rbs:container`           |
+| `--rbs-border-radius`             | `0`                             | `.rbs:container`           |
+| `--rbs-video-object-fit`          | `cover`                         | `.rbs:video`               |
+| `--rbs-viewfinder-stroke`         | `rgba(255, 0, 0, 0.5)`          | `.rbs:viewfinder`          |
+| `--rbs-viewfinder-stroke-width`   | `3`                             | `.rbs:viewfinder`          |
+| `--rbs-viewfinder-overlay`        | `rgba(0, 0, 0, 0.3)`            | `.rbs:viewfinder-mask`     |
+| `--rbs-camera-loading-background` | `rgba(0, 0, 0, 0.45)`           | `.rbs:camera-loading`      |
+| `--rbs-camera-loading-icon-color` | `#fff`                          | `.rbs:camera-loading-icon` |
+| `--rbs-camera-loading-icon-size`  | `72px`                          | `.rbs:camera-loading-icon` |
+| `--rbs-camera-off-border-width`   | `8px`                           | `.rbs:camera-off`          |
+| `--rbs-camera-off-border-color`   | `#eee`                          | `.rbs:camera-off`          |
+| `--rbs-camera-off-border-radius`  | `var(--rbs-border-radius, 5px)` | `.rbs:camera-off`          |
+| `--rbs-camera-off-icon-size`      | `65%`                           | `.rbs:camera-off-icon`     |
+| `--rbs-camera-off-icon-opacity`   | `0.2`                           | `.rbs:camera-off-icon`     |
+| `--rbs-camera-off-icon-color`     | `currentColor`                  | `.rbs:camera-off-icon`     |
 
 ## Component API
 

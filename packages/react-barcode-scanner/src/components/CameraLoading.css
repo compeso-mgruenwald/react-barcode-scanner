@@ -11,12 +11,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: var(--rbs-camera-loading-background, rgba(0, 0, 0, 0.45));
     z-index: 1;
   }
 
   .rbs\:camera-loading-icon {
-    color: #fff;
+    color: var(--rbs-camera-loading-icon-color, #fff);
+    width: var(--rbs-camera-loading-icon-size, 72px);
+    height: var(--rbs-camera-loading-icon-size, 72px);
     animation: rbs-camera-loading-spin 0.75s linear infinite;
   }
 

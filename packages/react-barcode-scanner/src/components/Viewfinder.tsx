@@ -13,13 +13,10 @@ export function Viewfinder({ className }: Props): ReactElement {
       viewBox="0 0 100 100"
       fill="none"
       strokeLinecap="round"
-      stroke="rgba(255, 0, 0, 0.5)"
-      strokeWidth={3}
       aria-hidden="true"
     >
       <path
-        fill="rgba(0, 0, 0, 0.3)"
-        stroke="none"
+        className="rbs:viewfinder-mask"
         fillRule="evenodd"
         d="M0 0h100v100H0zM10 10h80v80H10z"
       />

@@ -1,7 +1,9 @@
 @layer react-barcode-scanner {
   .rbs\:camera-off {
-    border: 8px #eee solid;
-    border-radius: 5px;
+    border-width: var(--rbs-camera-off-border-width, 8px);
+    border-style: solid;
+    border-color: var(--rbs-camera-off-border-color, #eee);
+    border-radius: var(--rbs-camera-off-border-radius, var(--rbs-border-radius, 5px));
     display: flex;
     position: absolute;
     inset: 0;
@@ -11,10 +13,11 @@
   }
 
   .rbs\:camera-off-icon {
-    width: 65%;
-    height: 65%;
+    width: var(--rbs-camera-off-icon-size, 65%);
+    height: var(--rbs-camera-off-icon-size, 65%);
     display: block;
-    opacity: 0.2;
+    opacity: var(--rbs-camera-off-icon-opacity, 0.2);
+    color: var(--rbs-camera-off-icon-color, currentColor);
     margin: 0 auto;
   }
 }

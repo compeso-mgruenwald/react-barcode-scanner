@@ -5,5 +5,12 @@
     left: 0;
     width: 100%;
     height: 100%;
+    stroke: var(--rbs-viewfinder-stroke, rgba(255, 0, 0, 0.5));
+    stroke-width: var(--rbs-viewfinder-stroke-width, 3);
+  }
+
+  .rbs\:viewfinder-mask {
+    fill: var(--rbs-viewfinder-overlay, rgba(0, 0, 0, 0.3));
+    stroke: none;
   }
 }
