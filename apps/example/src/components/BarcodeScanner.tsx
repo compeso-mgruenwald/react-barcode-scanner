@@ -53,6 +53,7 @@ function BarcodeScannerComponent({ description, onScan, onError }: Props) {
         onLoad={() => console.log("Video feed has loaded!")}
         containerStyle={{ width: "100%" }}
         videoClassName="rounded-xl"
+        videoContainerClassName="rounded-xl"
         viewfinderClassName="stroke-lime-400"
         cameraOffClassName="border-indigo-400"
       />
