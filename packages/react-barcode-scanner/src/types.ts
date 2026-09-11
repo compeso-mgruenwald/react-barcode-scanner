@@ -54,9 +54,11 @@ export interface BarcodeScannerProps {
   /**
    * Rendered over the video after HAVE_ENOUGH_DATA. Default is the built-in overlay.
    * Pass null to hide it. The default overlay joins rbs:viewfinder with
-   * viewfinderClassName. A custom component may take className or ignore it.
+   * viewfinderClassName and draws center crosshairs unless
+   * viewfinderCrosshairsDisabled is true. A custom component may take className
+   * and withCrosshairs or ignore them.
    */
-  Viewfinder?: ComponentType<{ className?: string }> | null;
+  Viewfinder?: ComponentType<{ className?: string; withCrosshairs: boolean }> | null;
   /**
    * Appended after rbs:container. Does not replace the default class.
    */
@@ -90,6 +92,12 @@ export interface BarcodeScannerProps {
    * rbs:viewfinder.
    */
   viewfinderClassName?: string;
+  /**
+   * Passed to Viewfinder as withCrosshairs={!viewfinderCrosshairsDisabled}.
+   * The default overlay draws center crosshairs. true hides them. A custom
+   * component may take withCrosshairs or ignore it.
+   */
+  viewfinderCrosshairsDisabled?: boolean;
   /**
    * Props to be passed to the used `<video />` element. An object replaces the default
    * attributes. Loaded-data handling stays with the library so the loader can clear.

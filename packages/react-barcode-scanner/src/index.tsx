@@ -40,6 +40,7 @@ export function BarcodeScanner({
   cameraOffClassName,
   cameraOffIconClassName,
   viewfinderClassName,
+  viewfinderCrosshairsDisabled,
   videoProps: passedVideoProps,
   flashlight
 }: Props): ReactElement {
@@ -271,7 +272,12 @@ export function BarcodeScanner({
             onLoadedData={handleVideoLoadedData}
           />
           {isCameraInitialized ? (
-            !!Viewfinder && <Viewfinder className={viewfinderClassName} />
+            !!Viewfinder && (
+              <Viewfinder
+                className={viewfinderClassName}
+                withCrosshairs={!viewfinderCrosshairsDisabled}
+              />
+            )
           ) : (
             <CameraLoading
               className={cameraLoadingClassName}

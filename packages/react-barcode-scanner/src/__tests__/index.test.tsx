@@ -41,8 +41,16 @@ function CustomViewfinder() {
   return <div data-testid="viewfinder">finder</div>;
 }
 
+function RecordingViewfinder({ withCrosshairs }: { withCrosshairs: boolean }) {
+  return <div data-testid="viewfinder">{withCrosshairs ? "cross" : "plain"}</div>;
+}
+
 function getDefaultViewfinder(container: HTMLElement) {
   return container.querySelector('path[d="M0 0h100v100H0zM15 15h70v70H15z"]');
+}
+
+function getViewfinderCrosshairs(container: HTMLElement) {
+  return container.getElementsByClassName("rbs:viewfinder")[0]?.querySelectorAll("line") ?? [];
 }
 
 function stubMediaDevices() {
@@ -943,6 +951,93 @@ describe("BarcodeScanner", () => {
 
     expect(viewfinder).toBeTruthy();
     expect(viewfinder?.classList.contains("host-viewfinder")).toBe(true);
+  });
+
+  it("draws crosshairs on the default Viewfinder", async () => {
+    mockDecodeAttachingStream();
+    let { container } = renderScanner();
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    let lines = getViewfinderCrosshairs(container);
+
+    expect(getDefaultViewfinder(container)).not.toBeNull();
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.getAttribute("x1")).toBe("40");
+    expect(lines[0]?.getAttribute("x2")).toBe("60");
+    expect(lines[1]?.getAttribute("y1")).toBe("40");
+    expect(lines[1]?.getAttribute("y2")).toBe("60");
+  });
+
+  it("omits crosshairs when viewfinderCrosshairsDisabled is true", async () => {
+    mockDecodeAttachingStream();
+    let { container } = renderScanner({ viewfinderCrosshairsDisabled: true });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(getDefaultViewfinder(container)).not.toBeNull();
+    expect(getViewfinderCrosshairs(container)).toHaveLength(0);
+  });
+
+  it("forwards withCrosshairs true to a custom Viewfinder by default", async () => {
+    mockDecodeAttachingStream();
+    let { container, getByTestId } = renderScanner({
+      Viewfinder: RecordingViewfinder
+    });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(getByTestId("viewfinder").textContent).toBe("cross");
+    expect(getDefaultViewfinder(container)).toBeNull();
+  });
+
+  it("forwards withCrosshairs false when viewfinderCrosshairsDisabled is true", async () => {
+    mockDecodeAttachingStream();
+    let { container, getByTestId } = renderScanner({
+      Viewfinder: RecordingViewfinder,
+      viewfinderCrosshairsDisabled: true
+    });
+    let video = videoFrom(container);
+
+    await waitFor(() => {
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+    });
+
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA
+    });
+    fireEvent.loadedData(video);
+
+    expect(getByTestId("viewfinder").textContent).toBe("plain");
+    expect(getDefaultViewfinder(container)).toBeNull();
   });
 
   it("mirrors the user-facing camera", () => {

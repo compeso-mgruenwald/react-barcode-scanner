@@ -75,7 +75,7 @@ function BarcodeScannerComponent({ description, onScan, onError }: Props) {
       {doScan ? (
         <Button onClick={handleStop}>Stop</Button>
       ) : (
-        <Button onClick={handleScanAgain}>Stop</Button>
+        <Button onClick={handleScanAgain}>Retry</Button>
       )}
     </>
   );
