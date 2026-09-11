@@ -121,16 +121,16 @@ Scanning runs while `doScan` is true and no error has fired. After an error, set
 
 `FlashlightOptions` fields are `className`, `turnOnLabel` (default "Turn flashlight on"), `turnOffLabel` (default "Turn flashlight off"), and `onError`. Off uses `turnOnLabel`. On uses `turnOffLabel`. The button also sets `aria-pressed`.
 
-`FlashlightOptions.onError` receives a `FlashlightError` when the track has no usable torch, and when both `applyConstraints` shapes fail on a click. Import the codes from the package.
+`FlashlightOptions.onError` receives a `FlashlightError` when the track has no usable torch, and when both `applyConstraints` shapes fail on a click or on a re-apply to a new stream. Import the codes from the package.
 
-| Code                        | Meaning                                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `NO_TRACK`                  | No video track was available when the library asked the camera about torch                            |
-| `NO_GET_CAPABILITIES`       | The track has no `getCapabilities` method, so torch cannot be queried                                 |
-| `TORCH_MISSING`             | `getCapabilities()` returned no torch field                                                           |
-| `TORCH_FALSE`               | `getCapabilities()` reported torch as false. This camera cannot turn a lamp on                        |
-| `TORCH_SEQUENCE_INCOMPLETE` | `getCapabilities()` reported a torch list that is not both true and false                             |
-| `CONSTRAINT_APPLY_FAILED`   | Both `applyConstraints` shapes failed. The library tried `{ advanced: [{ torch }] }` then `{ torch }` |
+| Code                        | Meaning                                                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NO_TRACK`                  | No video track was available when the library asked the camera about torch                                                                        |
+| `NO_GET_CAPABILITIES`       | The track has no `getCapabilities` method, so torch cannot be queried                                                                             |
+| `TORCH_MISSING`             | `getCapabilities()` returned no torch field                                                                                                       |
+| `TORCH_FALSE`               | `getCapabilities()` reported torch as false. This camera cannot turn a lamp on                                                                    |
+| `TORCH_SEQUENCE_INCOMPLETE` | `getCapabilities()` reported a torch list that is not both true and false                                                                         |
+| `CONSTRAINT_APPLY_FAILED`   | Both `applyConstraints` shapes failed on a click or on a re-apply to a new stream. The library tried `{ advanced: [{ torch }] }` then `{ torch }` |
 
 ## Migration
 

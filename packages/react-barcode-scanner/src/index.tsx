@@ -130,9 +130,14 @@ export function BarcodeScanner({
 
     try {
       await applyTorchConstraint(track, isEnabled);
+      if (videoTrackRef.current !== track || !withFlashlightRef.current) {
+        turnOffLiveTorch(track);
+        return;
+      }
       isFlashlightOnRef.current = isEnabled;
       setIsFlashlightOn(isEnabled);
     } catch {
+      if (videoTrackRef.current !== track || !withFlashlightRef.current) return;
       onTorchErrorRef.current?.(FlashlightError.ConstraintApplyFailed);
     } finally {
       isToggleInFlightRef.current = false;
@@ -140,9 +145,7 @@ export function BarcodeScanner({
   }, []);
 
   let releaseCamera = useCallback((video: HTMLVideoElement | null) => {
-    if (withFlashlightRef.current) {
-      turnOffLiveTorch(videoTrackRef.current);
-    }
+    turnOffLiveTorch(videoTrackRef.current);
 
     stopVideoStream(video);
     activeStreamRef.current = null;

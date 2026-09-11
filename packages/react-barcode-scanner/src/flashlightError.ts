@@ -20,8 +20,8 @@ type FlashlightErrorMap = {
    */
   readonly TorchSequenceIncomplete: "TORCH_SEQUENCE_INCOMPLETE";
   /**
-   * Both applyConstraints shapes failed. The library tried { advanced: [{ torch }] }
-   * then { torch }.
+   * Both applyConstraints shapes failed on a click or on a re-apply to a new
+   * stream. The library tried { advanced: [{ torch }] } then { torch }.
    */
   readonly ConstraintApplyFailed: "CONSTRAINT_APPLY_FAILED";
 };

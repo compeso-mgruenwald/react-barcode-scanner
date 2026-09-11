@@ -16,7 +16,7 @@ export interface FlashlightOptions {
   turnOffLabel?: string;
   /**
    * Called with a FlashlightError when the track has no usable torch, and when
-   * both applyConstraints shapes fail on a click.
+   * both applyConstraints shapes fail on a click or on a re-apply to a new stream.
    */
   onError?: (error: FlashlightError) => void;
 }
