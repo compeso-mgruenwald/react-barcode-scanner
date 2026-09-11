@@ -6,5 +6,10 @@ describe("joinClassNames", () => {
     expect(joinClassNames("rbs:container", "host-container")).toBe("rbs:container host-container");
     expect(joinClassNames("rbs:container", undefined)).toBe("rbs:container");
     expect(joinClassNames("rbs:container", "")).toBe("rbs:container");
+
+    let isEnabled = true;
+    expect(joinClassNames("rbs:container", isEnabled && "host-container")).toBe(
+      "rbs:container host-container"
+    );
   });
 });

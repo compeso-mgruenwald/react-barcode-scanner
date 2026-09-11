@@ -1,7 +1,8 @@
 import type { ComponentProps } from "react";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { BarcodeScanner } from "../index";
+import { BarcodeScanner, FlashlightError } from "../index";
+import type { FlashlightOptions } from "../index";
 import { decodeBarcodeFromConstraints } from "../utils/decodeBarcode";
 
 const MEDIA_DEVICES_ERROR_MESSAGE =
@@ -32,12 +33,16 @@ vi.mock("../utils/decodeBarcode", async (importOriginal) => {
   };
 });
 
+function noop() {
+  return;
+}
+
 function CustomViewfinder() {
   return <div data-testid="viewfinder">finder</div>;
 }
 
 function getDefaultViewfinder(container: HTMLElement) {
-  return container.querySelector('path[d="M0 0h100v100H0zM10 10h80v80H10z"]');
+  return container.querySelector('path[d="M0 0h100v100H0zM15 15h70v70H15z"]');
 }
 
 function stubMediaDevices() {
@@ -72,47 +77,71 @@ function getCameraOff(container: HTMLElement) {
   return container.querySelector('[role="img"][aria-label="Camera off"]');
 }
 
-function streamWithStop() {
+function streamWithStop(options?: {
+  capabilities?: MediaTrackCapabilities;
+  omitGetCapabilities?: boolean;
+  applyConstraints?: ReturnType<typeof vi.fn>;
+  readyState?: MediaStreamTrack["readyState"];
+}) {
   let stop = vi.fn();
+  let applyConstraints = options?.applyConstraints ?? vi.fn().mockResolvedValue(undefined);
+  let track: Record<string, unknown> = {
+    stop,
+    applyConstraints,
+    readyState: options?.readyState ?? "live"
+  };
+
+  if (!options?.omitGetCapabilities) {
+    track.getCapabilities = vi.fn(() => options?.capabilities ?? {});
+  }
+
   let stream = new MediaStream();
   Object.defineProperty(stream, "getTracks", {
     configurable: true,
-    value: () => [{ stop }]
+    value: () => [track]
   });
-  return { stream, stop };
+  Object.defineProperty(stream, "getVideoTracks", {
+    configurable: true,
+    value: () => [track]
+  });
+  return { stream, stop, applyConstraints };
 }
 
 function attachOwnedStream(
   videoElement: { current: HTMLVideoElement | null },
   isCancelled: (() => boolean) | undefined,
-  onStream: (stream: MediaStream) => void
+  onStream: (stream: MediaStream) => void,
+  options?: Parameters<typeof streamWithStop>[0]
 ) {
-  let { stream, stop } = streamWithStop();
+  let attachment = streamWithStop(options);
 
   if (videoElement.current) {
-    videoElement.current.srcObject = stream;
+    videoElement.current.srcObject = attachment.stream;
   }
 
   if (isCancelled?.()) {
-    stop();
-    return stop;
+    attachment.stop();
+    return attachment;
   }
 
-  onStream(stream);
-  return stop;
+  onStream(attachment.stream);
+  return attachment;
 }
 
-function mockDecodeAttachingStream() {
+function mockDecodeAttachingStream(options?: Parameters<typeof streamWithStop>[0]) {
   let stops: Array<ReturnType<typeof vi.fn>> = [];
+  let attachments: Array<ReturnType<typeof streamWithStop>> = [];
 
   vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
     async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
-      stops.push(attachOwnedStream(videoElement, isCancelled, onStream));
+      let attachment = attachOwnedStream(videoElement, isCancelled, onStream, options);
+      attachments.push(attachment);
+      stops.push(attachment.stop);
       onStop?.(() => {});
     }
   );
 
-  return { stops };
+  return { stops, attachments };
 }
 
 function deferred<T = void>() {
@@ -138,9 +167,51 @@ function renderScanner(
   };
 }
 
+function getFlashlightButton(container: HTMLElement, name = "Turn flashlight on") {
+  return container.querySelector(`[aria-label="${name}"]`);
+}
+
+async function waitForFlashlightButton(container: HTMLElement, name = "Turn flashlight on") {
+  await waitFor(() => {
+    expect(getFlashlightButton(container, name)).not.toBeNull();
+  });
+  let button = getFlashlightButton(container, name);
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error("expected flashlight button");
+  }
+  return button;
+}
+
+async function flushMicrotasks() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
+const FACING_MODE_USER_CONSTRAINTS = { facingMode: "user" };
+const FACING_MODE_ENV_CONSTRAINTS = { width: 1280, facingMode: "environment" };
+const VIDEO_PROPS_OVERRIDE = { id: "override-video" };
+const FLASHLIGHT_LAMP_LABELS = { turnOnLabel: "Lamp on", turnOffLabel: "Lamp off" };
+
+function flashlightWithError(
+  onError: NonNullable<FlashlightOptions["onError"]>
+): FlashlightOptions {
+  return { onError };
+}
+
 describe("public API", () => {
   it("exports BarcodeScanner", () => {
     expect(typeof BarcodeScanner).toBe("function");
+  });
+
+  it("exports FlashlightError codes", () => {
+    let code: FlashlightError = FlashlightError.NoTrack;
+    expect(code).toBe("NO_TRACK");
+    expect(FlashlightError.NoGetCapabilities).toBe("NO_GET_CAPABILITIES");
+    expect(FlashlightError.TorchMissing).toBe("TORCH_MISSING");
+    expect(FlashlightError.TorchFalse).toBe("TORCH_FALSE");
+    expect(FlashlightError.TorchSequenceIncomplete).toBe("TORCH_SEQUENCE_INCOMPLETE");
+    expect(FlashlightError.ConstraintApplyFailed).toBe("CONSTRAINT_APPLY_FAILED");
   });
 });
 
@@ -307,9 +378,7 @@ describe("BarcodeScanner", () => {
   });
 
   it("does not restart decode when constraints are omitted and callbacks are inline", async () => {
-    let { rerender } = render(
-      <BarcodeScanner onSuccess={() => {}} onError={() => {}} onLoad={() => {}} />
-    );
+    let { rerender } = render(<BarcodeScanner onSuccess={noop} onError={noop} onLoad={noop} />);
 
     await waitFor(() => {
       expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
@@ -322,7 +391,7 @@ describe("BarcodeScanner", () => {
       aspectRatio: { ideal: 1 }
     });
 
-    rerender(<BarcodeScanner onSuccess={() => {}} onError={() => {}} onLoad={() => {}} />);
+    rerender(<BarcodeScanner onSuccess={noop} onError={noop} onLoad={noop} />);
 
     expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
   });
@@ -348,7 +417,7 @@ describe("BarcodeScanner", () => {
 
     rerender(
       <BarcodeScanner
-        constraints={{ width: 1280, facingMode: "environment" }}
+        constraints={FACING_MODE_ENV_CONSTRAINTS}
         onSuccess={onSuccess}
         onError={onError}
       />
@@ -369,7 +438,7 @@ describe("BarcodeScanner", () => {
 
     rerender(
       <BarcodeScanner
-        constraints={{ facingMode: "user" }}
+        constraints={FACING_MODE_USER_CONSTRAINTS}
         onSuccess={onSuccess}
         onError={onError}
       />
@@ -419,15 +488,15 @@ describe("BarcodeScanner", () => {
 
     vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
       async (_reader, videoElement, _constraints, isCancelled, onStream) => {
-        let stop = attachOwnedStream(videoElement, undefined, onStream);
-        stops.push(stop);
+        let attachment = attachOwnedStream(videoElement, undefined, onStream);
+        stops.push(attachment.stop);
 
         if (call++ === 0) {
           await first.promise;
         }
 
         if (isCancelled()) {
-          stop();
+          attachment.stop();
         }
       }
     );
@@ -442,7 +511,7 @@ describe("BarcodeScanner", () => {
 
     rerender(
       <BarcodeScanner
-        constraints={{ facingMode: "user" }}
+        constraints={FACING_MODE_USER_CONSTRAINTS}
         onSuccess={onSuccess}
         onError={onError}
       />
@@ -511,7 +580,7 @@ describe("BarcodeScanner", () => {
           await first.promise;
         }
 
-        stops[index] = attachOwnedStream(videoElement, isCancelled, onStream);
+        stops[index] = attachOwnedStream(videoElement, isCancelled, onStream).stop;
       }
     );
 
@@ -525,7 +594,7 @@ describe("BarcodeScanner", () => {
 
     rerender(
       <BarcodeScanner
-        constraints={{ facingMode: "user" }}
+        constraints={FACING_MODE_USER_CONSTRAINTS}
         onSuccess={onSuccess}
         onError={onError}
       />
@@ -605,7 +674,7 @@ describe("BarcodeScanner", () => {
 
     rerender(
       <BarcodeScanner
-        constraints={{ facingMode: "user" }}
+        constraints={FACING_MODE_USER_CONSTRAINTS}
         onSuccess={onSuccess}
         onError={onError}
         Viewfinder={CustomViewfinder}
@@ -641,7 +710,7 @@ describe("BarcodeScanner", () => {
 
     rerender(
       <BarcodeScanner
-        constraints={{ facingMode: "user" }}
+        constraints={FACING_MODE_USER_CONSTRAINTS}
         onSuccess={onSuccess}
         onError={onError}
         onLoad={onLoad}
@@ -878,15 +947,15 @@ describe("BarcodeScanner", () => {
 
   it("mirrors the user-facing camera", () => {
     let { container, rerender, onSuccess, onError } = renderScanner({
-      constraints: { facingMode: "user" }
+      constraints: FACING_MODE_USER_CONSTRAINTS
     });
 
     expect(videoFrom(container).classList.contains("rbs:video-mirrored")).toBe(true);
 
     rerender(
       <BarcodeScanner
-        constraints={{ facingMode: "user" }}
-        videoProps={{ id: "override-video" }}
+        constraints={FACING_MODE_USER_CONSTRAINTS}
+        videoProps={VIDEO_PROPS_OVERRIDE}
         onSuccess={onSuccess}
         onError={onError}
       />
@@ -984,5 +1053,750 @@ describe("BarcodeScanner", () => {
     fireEvent.loadedData(video);
 
     expect(onLoad).not.toHaveBeenCalled();
+  });
+
+  describe("flashlight", () => {
+    it("does not render a button by default", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { container } = renderScanner();
+
+      await waitFor(() => {
+        expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      });
+      await flushMicrotasks();
+
+      expect(getFlashlightButton(container)).toBeNull();
+    });
+
+    it("does not render a button when flashlight is false", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { container } = renderScanner({ flashlight: false });
+
+      await waitFor(() => {
+        expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      });
+      await flushMicrotasks();
+
+      expect(getFlashlightButton(container)).toBeNull();
+    });
+
+    it("shows the button after the deferred capability check when flashlight is true", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { container } = renderScanner({ flashlight: true });
+
+      await waitFor(() => {
+        expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      });
+
+      let button = await waitForFlashlightButton(container);
+      expect(button.classList.contains("rbs:flashlight-toggle-button")).toBe(true);
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+    });
+
+    it("shows the button when flashlight is an options object and torch is supported", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let options: FlashlightOptions = {
+        className: "host-flashlight",
+        turnOnLabel: "Lamp on",
+        turnOffLabel: "Lamp off"
+      };
+      let { container } = renderScanner({ flashlight: options });
+
+      let button = await waitForFlashlightButton(container, "Lamp on");
+      expect(button.classList.contains("rbs:flashlight-toggle-button")).toBe(true);
+      expect(button.classList.contains("host-flashlight")).toBe(true);
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+    });
+
+    it("calls onError and hides the button when torch is missing", async () => {
+      mockDecodeAttachingStream({ capabilities: {} });
+      let onFlashlightError = vi.fn();
+      let { container } = renderScanner({ flashlight: { onError: onFlashlightError } });
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.TorchMissing);
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+    });
+
+    it("calls onError when the track has no getCapabilities", async () => {
+      mockDecodeAttachingStream({ omitGetCapabilities: true });
+      let onFlashlightError = vi.fn();
+      renderScanner({ flashlight: { onError: onFlashlightError } });
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.NoGetCapabilities);
+      });
+    });
+
+    it("calls onError when torch is false", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: false } });
+      let onFlashlightError = vi.fn();
+      renderScanner({ flashlight: { onError: onFlashlightError } });
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.TorchFalse);
+      });
+    });
+
+    it("calls onError when there is no video track", async () => {
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, _videoElement, _constraints, _isCancelled, onStream, onStop) => {
+          let stream = new MediaStream();
+          onStream(stream);
+          onStop?.(() => {});
+        }
+      );
+      let onFlashlightError = vi.fn();
+      renderScanner({ flashlight: { onError: onFlashlightError } });
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.NoTrack);
+      });
+    });
+
+    it("swaps the on class and label after a successful toggle", async () => {
+      let { attachments } = mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { container } = renderScanner({ flashlight: true });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(button.getAttribute("aria-label")).toBe("Turn flashlight off");
+      });
+      expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      expect(button.getAttribute("aria-pressed")).toBe("true");
+      expect(attachments[0]?.applyConstraints).toHaveBeenCalledWith({
+        advanced: [{ torch: true }]
+      });
+    });
+
+    it("applies object className and labels after a successful toggle", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { container } = renderScanner({
+        flashlight: {
+          className: "host-flashlight",
+          turnOnLabel: "Lamp on",
+          turnOffLabel: "Lamp off"
+        }
+      });
+      let button = await waitForFlashlightButton(container, "Lamp on");
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(button.getAttribute("aria-label")).toBe("Lamp off");
+      });
+      expect(button.classList.contains("host-flashlight")).toBe(true);
+      expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+    });
+
+    it("turns the torch off when doScan becomes false", async () => {
+      let { attachments } = mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { rerender, container, onSuccess, onError } = renderScanner({ flashlight: true });
+      await waitForFlashlightButton(container);
+
+      rerender(
+        <BarcodeScanner doScan={false} flashlight onSuccess={onSuccess} onError={onError} />
+      );
+
+      await waitFor(() => {
+        expect(attachments[0]?.applyConstraints).toHaveBeenCalledWith({
+          advanced: [{ torch: false }]
+        });
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+      expect(getCameraOff(container)).not.toBeNull();
+    });
+
+    it("turns the torch off on unmount", async () => {
+      let { attachments } = mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { unmount, container } = renderScanner({ flashlight: true });
+      await waitForFlashlightButton(container);
+
+      unmount();
+
+      await waitFor(() => {
+        expect(attachments[0]?.applyConstraints).toHaveBeenCalledWith({
+          advanced: [{ torch: false }]
+        });
+      });
+    });
+
+    it("turns the torch off when constraints change", async () => {
+      let { attachments } = mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: true,
+        constraints: { facingMode: "environment" }
+      });
+      await waitForFlashlightButton(container);
+
+      rerender(
+        <BarcodeScanner
+          flashlight
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(attachments[0]?.applyConstraints).toHaveBeenCalledWith({
+          advanced: [{ torch: false }]
+        });
+      });
+    });
+
+    it("turns the torch off when decode rejects", async () => {
+      let attachment = streamWithStop({ capabilities: { torch: true } });
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, _isCancelled, onStream, onStop) => {
+          if (videoElement.current) {
+            videoElement.current.srcObject = attachment.stream;
+          }
+
+          onStream(attachment.stream);
+          onStop?.(() => {});
+          throw new Error("boom");
+        }
+      );
+      let onFlashlightError = vi.fn();
+      let { container, onError } = renderScanner({ flashlight: { onError: onFlashlightError } });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledOnce();
+      });
+      await waitFor(() => {
+        expect(attachment.applyConstraints).toHaveBeenCalledWith({ advanced: [{ torch: false }] });
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+    });
+
+    it("re-applies torch on a new stream after a successful on-toggle", async () => {
+      let { attachments } = mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: true,
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(getFlashlightButton(container, "Turn flashlight off")).not.toBeNull();
+      });
+      expect(attachments[1]?.applyConstraints).toHaveBeenCalledWith({
+        advanced: [{ torch: true }]
+      });
+      expect(
+        getFlashlightButton(container, "Turn flashlight off")?.classList.contains(
+          "rbs:flashlight-on"
+        )
+      ).toBe(true);
+    });
+
+    it("does not restart the camera when flashlight options are a new object", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: { turnOnLabel: "Lamp on" }
+      });
+      await waitForFlashlightButton(container, "Lamp on");
+
+      rerender(
+        <BarcodeScanner
+          flashlight={FLASHLIGHT_LAMP_LABELS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      expect(getFlashlightButton(container, "Lamp on")).not.toBeNull();
+    });
+
+    it("runs the capability check when flashlight becomes configured on a live track", async () => {
+      mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { rerender, container, onSuccess, onError } = renderScanner();
+
+      await waitFor(() => {
+        expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+
+      rerender(<BarcodeScanner flashlight onSuccess={onSuccess} onError={onError} />);
+
+      expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      expect(await waitForFlashlightButton(container)).toBeInstanceOf(HTMLButtonElement);
+    });
+
+    it("turns the torch off, hides the button, and clears the toggle when flashlight is removed", async () => {
+      let { attachments } = mockDecodeAttachingStream({ capabilities: { torch: true } });
+      let { rerender, container, onSuccess, onError } = renderScanner({ flashlight: true });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(<BarcodeScanner onSuccess={onSuccess} onError={onError} />);
+
+      await waitFor(() => {
+        expect(attachments[0]?.applyConstraints).toHaveBeenCalledWith({
+          advanced: [{ torch: false }]
+        });
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+      expect(getFlashlightButton(container, "Turn flashlight off")).toBeNull();
+
+      rerender(<BarcodeScanner flashlight onSuccess={onSuccess} onError={onError} />);
+
+      let nextButton = await waitForFlashlightButton(container);
+      expect(nextButton.classList.contains("rbs:flashlight-on")).toBe(false);
+    });
+
+    it("calls onError and keeps the off state when both constraint shapes fail", async () => {
+      let applyConstraints = vi.fn().mockRejectedValue(new Error("nope"));
+      mockDecodeAttachingStream({ capabilities: { torch: true }, applyConstraints });
+      let onFlashlightError = vi.fn();
+      let { container } = renderScanner({ flashlight: { onError: onFlashlightError } });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.ConstraintApplyFailed);
+      });
+      expect(button.classList.contains("rbs:flashlight-on")).toBe(false);
+      expect(applyConstraints).toHaveBeenCalledTimes(2);
+    });
+
+    it("ignores a re-entrant click while a toggle is in flight", async () => {
+      let apply = deferred();
+      let applyConstraints = vi.fn(() => apply.promise);
+      mockDecodeAttachingStream({ capabilities: { torch: true }, applyConstraints });
+      let { container } = renderScanner({ flashlight: true });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(applyConstraints).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        apply.resolve();
+        await apply.promise;
+      });
+
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+    });
+
+    it("clears the toggle and still shows the button when re-applying torch on a new stream fails", async () => {
+      let call = 0;
+      let firstApply = vi.fn().mockResolvedValue(undefined);
+      let secondApply = vi.fn().mockRejectedValue(new Error("nope"));
+      let onFlashlightError = vi.fn();
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          attachOwnedStream(videoElement, isCancelled, onStream, {
+            capabilities: { torch: true },
+            applyConstraints: call++ === 0 ? firstApply : secondApply
+          });
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: { onError: onFlashlightError },
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight={flashlightWithError(onFlashlightError)}
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.ConstraintApplyFailed);
+      });
+      let nextButton = await waitForFlashlightButton(container);
+      expect(nextButton.classList.contains("rbs:flashlight-on")).toBe(false);
+    });
+
+    it("keeps the last toggle when a new stream has no torch so a later capable camera can turn it on", async () => {
+      let call = 0;
+      let applies = [vi.fn().mockResolvedValue(undefined), vi.fn().mockResolvedValue(undefined)];
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          let index = call++;
+          attachOwnedStream(videoElement, isCancelled, onStream, {
+            capabilities: index === 1 ? {} : { torch: true },
+            applyConstraints: applies[index === 2 ? 1 : 0]
+          });
+          onStop?.(() => {});
+        }
+      );
+
+      let onFlashlightError = vi.fn();
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: { onError: onFlashlightError },
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight={flashlightWithError(onFlashlightError)}
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.TorchMissing);
+      });
+      expect(getFlashlightButton(container, "Turn flashlight off")).toBeNull();
+
+      rerender(
+        <BarcodeScanner
+          flashlight={flashlightWithError(onFlashlightError)}
+          constraints={FACING_MODE_ENV_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(getFlashlightButton(container, "Turn flashlight off")).not.toBeNull();
+      });
+      expect(applies[1]).toHaveBeenCalledWith({ advanced: [{ torch: true }] });
+    });
+
+    it("ignores a stale capability result after constraints change", async () => {
+      let call = 0;
+      let onFlashlightError = vi.fn();
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          attachOwnedStream(videoElement, isCancelled, onStream, {
+            capabilities: call++ === 0 ? { torch: true } : {}
+          });
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: { onError: onFlashlightError },
+        constraints: { facingMode: "environment" }
+      });
+
+      await waitFor(() => {
+        expect(decodeBarcodeFromConstraints).toHaveBeenCalledOnce();
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight={flashlightWithError(onFlashlightError)}
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(onFlashlightError).toHaveBeenCalledWith(FlashlightError.TorchMissing);
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+    });
+
+    it("ignores a capability result after flashlight is turned off", async () => {
+      let stream = streamWithStop({ capabilities: {} }).stream;
+      let capturedOnStream: ((next: MediaStream) => void) | undefined;
+      let onFlashlightError = vi.fn();
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, _videoElement, _constraints, _isCancelled, onStream, onStop) => {
+          capturedOnStream = onStream;
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, onSuccess, onError } = renderScanner({
+        flashlight: { onError: onFlashlightError }
+      });
+
+      await waitFor(() => {
+        expect(capturedOnStream).toBeDefined();
+      });
+
+      capturedOnStream?.(stream);
+      rerender(<BarcodeScanner onSuccess={onSuccess} onError={onError} />);
+      await flushMicrotasks();
+
+      expect(onFlashlightError).not.toHaveBeenCalled();
+    });
+
+    it("does not show the button when re-apply succeeds after flashlight is removed", async () => {
+      let apply = deferred();
+      let firstApply = vi.fn().mockResolvedValue(undefined);
+      let secondApply = vi.fn(() => apply.promise);
+      let call = 0;
+      let attachments: Array<ReturnType<typeof streamWithStop>> = [];
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          attachments.push(
+            attachOwnedStream(videoElement, isCancelled, onStream, {
+              capabilities: { torch: true },
+              applyConstraints: call++ === 0 ? firstApply : secondApply
+            })
+          );
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: true,
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(secondApply).toHaveBeenCalled();
+      });
+
+      rerender(
+        <BarcodeScanner
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await act(async () => {
+        apply.resolve();
+        await apply.promise;
+      });
+
+      await waitFor(() => {
+        expect(attachments[1]?.applyConstraints).toHaveBeenCalledWith({
+          advanced: [{ torch: false }]
+        });
+      });
+      expect(getFlashlightButton(container)).toBeNull();
+      expect(getFlashlightButton(container, "Turn flashlight off")).toBeNull();
+    });
+
+    it("ignores a late re-apply success after the session is cancelled", async () => {
+      let apply = deferred();
+      let firstApply = vi.fn().mockResolvedValue(undefined);
+      let secondApply = vi.fn(() => apply.promise);
+      let call = 0;
+      let attachments: Array<ReturnType<typeof streamWithStop>> = [];
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          attachments.push(
+            attachOwnedStream(videoElement, isCancelled, onStream, {
+              capabilities: { torch: true },
+              applyConstraints: call++ === 0 ? firstApply : secondApply
+            })
+          );
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, container, onSuccess, onError, unmount } = renderScanner({
+        flashlight: true,
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(secondApply).toHaveBeenCalled();
+      });
+
+      unmount();
+
+      await act(async () => {
+        apply.resolve();
+        await apply.promise;
+      });
+
+      await waitFor(() => {
+        expect(attachments[1]?.applyConstraints).toHaveBeenCalledWith({
+          advanced: [{ torch: false }]
+        });
+      });
+    });
+
+    it("ignores a late re-apply failure after the session is cancelled", async () => {
+      let apply = deferred();
+      let firstApply = vi.fn().mockResolvedValue(undefined);
+      let secondApply = vi.fn(() => apply.promise);
+      let call = 0;
+      let onFlashlightError = vi.fn();
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          attachOwnedStream(videoElement, isCancelled, onStream, {
+            capabilities: { torch: true },
+            applyConstraints: call++ === 0 ? firstApply : secondApply
+          });
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, container, onSuccess, onError, unmount } = renderScanner({
+        flashlight: { onError: onFlashlightError },
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight={flashlightWithError(onFlashlightError)}
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(secondApply).toHaveBeenCalled();
+      });
+
+      unmount();
+
+      await act(async () => {
+        apply.reject(new Error("nope"));
+        await apply.promise.catch(() => {});
+      });
+
+      expect(onFlashlightError).not.toHaveBeenCalledWith(FlashlightError.ConstraintApplyFailed);
+    });
+
+    it("does not apply a failed re-apply after flashlight is removed", async () => {
+      let apply = deferred();
+      let firstApply = vi.fn().mockResolvedValue(undefined);
+      let secondApply = vi.fn(() => apply.promise);
+      let call = 0;
+      let onFlashlightError = vi.fn();
+
+      vi.mocked(decodeBarcodeFromConstraints).mockImplementation(
+        async (_reader, videoElement, _constraints, isCancelled, onStream, onStop) => {
+          attachOwnedStream(videoElement, isCancelled, onStream, {
+            capabilities: { torch: true },
+            applyConstraints: call++ === 0 ? firstApply : secondApply
+          });
+          onStop?.(() => {});
+        }
+      );
+
+      let { rerender, container, onSuccess, onError } = renderScanner({
+        flashlight: { onError: onFlashlightError },
+        constraints: { facingMode: "environment" }
+      });
+      let button = await waitForFlashlightButton(container);
+
+      fireEvent.click(button);
+      await waitFor(() => {
+        expect(button.classList.contains("rbs:flashlight-on")).toBe(true);
+      });
+
+      rerender(
+        <BarcodeScanner
+          flashlight={flashlightWithError(onFlashlightError)}
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(secondApply).toHaveBeenCalled();
+      });
+
+      rerender(
+        <BarcodeScanner
+          constraints={FACING_MODE_USER_CONSTRAINTS}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      );
+
+      await act(async () => {
+        apply.reject(new Error("nope"));
+        await apply.promise.catch(() => {});
+      });
+
+      expect(onFlashlightError).not.toHaveBeenCalledWith(FlashlightError.ConstraintApplyFailed);
+    });
   });
 });

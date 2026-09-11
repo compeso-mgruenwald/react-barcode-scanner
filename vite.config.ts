@@ -28,10 +28,10 @@ export default defineConfig({
     sortTailwindcss: true
   },
   lint: {
-    plugins: ["eslint", "typescript", "unicorn", "oxc", "react", "import"],
+    plugins: ["eslint", "typescript", "unicorn", "oxc", "react", "react-perf", "import"],
     categories: {
-      correctness: "error",
-      suspicious: "error",
+      correctness: "deny",
+      suspicious: "deny",
       perf: "warn"
     },
     env: {
@@ -53,35 +53,35 @@ export default defineConfig({
       {
         files: ["*.config.ts"],
         rules: {
-          "import/no-default-export": "off"
+          "import/no-default-export": "allow"
         }
       },
       {
         files: ["apps/example/**"],
         rules: {
-          "no-console": "off",
-          "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }],
-          "react/no-unstable-nested-components": ["error", { allowAsProps: true }]
+          "no-console": "allow",
+          "import/no-unassigned-import": ["deny", { allow: ["**/*.css"] }],
+          "react/no-unstable-nested-components": ["deny", { allowAsProps: true }]
         }
       },
       {
         files: ["packages/react-barcode-scanner/**"],
         rules: {
-          "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }]
+          "import/no-unassigned-import": ["deny", { allow: ["**/*.css"] }]
         }
       }
     ],
     rules: {
-      "react/react-in-jsx-scope": "off",
-      "prefer-const": "off",
-      "func-style": ["error", "declaration"],
-      "prefer-arrow-callback": "error",
-      "typescript/explicit-function-return-type": "off",
-      "import/no-default-export": "error",
-      "import/prefer-default-export": "off",
-      "no-console": ["error", { allow: ["warn", "error", "info"] }],
+      "react/react-in-jsx-scope": "allow",
+      "prefer-const": "allow",
+      "func-style": ["deny", "declaration"],
+      "prefer-arrow-callback": "deny",
+      "typescript/explicit-function-return-type": "allow",
+      "import/no-default-export": "deny",
+      "import/prefer-default-export": "allow",
+      "no-console": ["deny", { allow: ["warn", "error", "info"] }],
       "no-unused-vars": [
-        "error",
+        "deny",
         {
           argsIgnorePattern: "^_",
           destructuredArrayIgnorePattern: "^_",
@@ -89,32 +89,18 @@ export default defineConfig({
           ignoreRestSiblings: true
         }
       ],
-      "unicorn/no-array-for-each": "error",
+      "unicorn/no-array-for-each": "deny",
       "typescript/no-misused-promises": [
-        "error",
-        { checksVoidReturn: { arguments: false, attributes: false } }
+        "deny",
+        { checksVoidReturn: { arguments: false, attributes: false, properties: false } }
       ],
+      "typescript/no-floating-promises": "deny",
       "typescript/prefer-nullish-coalescing": [
-        "error",
+        "deny",
         { ignorePrimitives: { boolean: true, string: true } }
       ],
-      "typescript/no-floating-promises": [
-        "error",
-        {
-          allowForKnownSafeCalls: [
-            {
-              from: "file",
-              name: ["trace", "debug", "info", "warn", "error", "critical"]
-            }
-          ],
-          allowForKnownSafePromises: [],
-          checkThenables: false,
-          ignoreIIFE: false,
-          ignoreVoid: true
-        }
-      ],
       "typescript/restrict-template-expressions": [
-        "error",
+        "deny",
         {
           allowAny: false,
           allowArray: false,

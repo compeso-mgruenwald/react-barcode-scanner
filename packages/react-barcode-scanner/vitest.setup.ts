@@ -9,5 +9,8 @@ Object.defineProperty(globalThis, "MediaStream", {
     getTracks(): MediaStreamTrack[] {
       return [];
     }
+    getVideoTracks(): MediaStreamTrack[] {
+      return [];
+    }
   }
 });

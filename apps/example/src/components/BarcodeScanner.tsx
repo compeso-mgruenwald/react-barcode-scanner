@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { BarcodeScanner as ReactBarcodeScanner } from "@thewirv/react-barcode-scanner";
 import { Button } from "./Button";
@@ -13,44 +13,59 @@ function BarcodeScannerComponent({ description, onScan, onError }: Props) {
   let [doScan, setDoScan] = useState(true);
   let [error, setError] = useState("");
 
-  function handleScanAgain() {
+  let handleSuccess = useCallback(
+    (text: string) => {
+      setDoScan(false);
+      onScan(text);
+    },
+    [onScan]
+  );
+
+  let handleError = useCallback(
+    (scanError?: Error) => {
+      if (!scanError) {
+        return;
+      }
+
+      let errorMessage = "";
+
+      if (scanError.name.includes("NotFoundError")) {
+        errorMessage = "Camera not found!";
+      } else if (scanError.name.includes("IndexSizeError")) {
+        errorMessage = "Scanner error";
+      } else {
+        errorMessage = scanError.message;
+      }
+
+      setDoScan(false);
+      setError(errorMessage);
+      onError?.();
+    },
+    [onError]
+  );
+
+  let handleLoad = useCallback(() => {
+    console.log("Video feed has loaded!");
+  }, []);
+
+  let handleScanAgain = useCallback(() => {
     setError("");
     setDoScan(true);
-  }
+  }, []);
 
-  function handleStop() {
+  let handleStop = useCallback(() => {
     setDoScan(false);
-  }
+  }, []);
 
   return (
     <>
       {description && <p>{description}</p>}
       <ReactBarcodeScanner
         doScan={doScan}
-        onSuccess={(text) => {
-          setDoScan(false);
-          onScan(text);
-        }}
-        onError={(scanError) => {
-          if (!scanError) {
-            return;
-          }
-
-          let errorMessage = "";
-
-          if (scanError.name.includes("NotFoundError")) {
-            errorMessage = "Camera not found!";
-          } else if (scanError.name.includes("IndexSizeError")) {
-            errorMessage = "Scanner error";
-          } else {
-            errorMessage = scanError.message;
-          }
-
-          setDoScan(false);
-          setError(errorMessage);
-          onError?.();
-        }}
-        onLoad={() => console.log("Video feed has loaded!")}
+        onSuccess={handleSuccess}
+        onError={handleError}
+        onLoad={handleLoad}
+        flashlight
         videoClassName="rounded-xl"
         videoContainerClassName="rounded-xl"
         viewfinderClassName="stroke-indigo-800"

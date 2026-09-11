@@ -18,7 +18,7 @@ export function Viewfinder({ className }: Props): ReactElement {
       <path
         className="rbs:viewfinder-mask"
         fillRule="evenodd"
-        d="M0 0h100v100H0zM10 10h80v80H10z"
+        d="M0 0h100v100H0zM15 15h70v70H15z"
       />
       <path d="M23,10 L10,10 L10,23" />
       <path d="M10,77 L10,90 L23,90" />

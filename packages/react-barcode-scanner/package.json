@@ -72,6 +72,6 @@
   "peerDependencies": {
     "react": "^16.8.0 || 17.x || 18.x || 19.x",
     "react-dom": "^16.8.0 || 17.x || 18.x || 19.x",
-    "react-icons": ">=4.8"
+    "react-icons": ">=4.9"
   }
 }

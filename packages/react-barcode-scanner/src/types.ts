@@ -1,4 +1,25 @@
 import type { ComponentType, VideoHTMLAttributes } from "react";
+import type { FlashlightError } from "./flashlightError";
+
+export interface FlashlightOptions {
+  /**
+   * Appended after rbs:flashlight-toggle-button.
+   */
+  className?: string;
+  /**
+   * aria-label while the flashlight is off. Default is "Turn flashlight on".
+   */
+  turnOnLabel?: string;
+  /**
+   * aria-label while the flashlight is on. Default is "Turn flashlight off".
+   */
+  turnOffLabel?: string;
+  /**
+   * Called with a FlashlightError when the track has no usable torch, and when
+   * both applyConstraints shapes fail on a click.
+   */
+  onError?: (error: FlashlightError) => void;
+}
 
 export interface BarcodeScannerProps {
   /**
@@ -81,4 +102,11 @@ export interface BarcodeScannerProps {
     | ((
         defaultProps: VideoHTMLAttributes<HTMLVideoElement>
       ) => VideoHTMLAttributes<HTMLVideoElement>);
+  /**
+   * Opt-in flashlight control. Omit or false keeps the button off. true shows the
+   * default button. An object sets class name, ARIA labels, and onError. This prop
+   * does not turn the lamp on. The button shows only when the track reports torch
+   * support.
+   */
+  flashlight?: boolean | FlashlightOptions;
 }
