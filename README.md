@@ -123,6 +123,8 @@ Scanning runs while `doScan` is true and no error has fired. After an error, set
 
 `FlashlightOptions.onError` receives a `FlashlightError` when the track has no usable torch, and when both `applyConstraints` shapes fail on a click or on a re-apply to a new stream. Import the codes from the package.
 
+A click tries `{ advanced: [{ torch }] }` then `{ torch }`. The last on-toggle is kept across streams and re-applied to the next camera. The lamp turns off on stop, unmount, a constraint change, a decode error, and when `flashlight` is removed.
+
 | Code                        | Meaning                                                                                                                                           |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NO_TRACK`                  | No video track was available when the library asked the camera about torch                                                                        |
@@ -134,6 +136,19 @@ Scanning runs while `doScan` is true and no error has fired. After an error, set
 
 ## Migration
 
+### Upgrade to 7.0
+
+7.0 draws center crosshairs on the built-in viewfinder. Pass `viewfinderCrosshairsDisabled` to hide them. The cutout is 15% inset so the corner marks sit on the edge. A custom `Viewfinder` receives `withCrosshairs`.
+
+`react-icons` 4.9 or later is required.
+
+`flashlight` is opt-in. The button appears only when the camera reports torch support.
+
+Full notes are in the [7.0.0 changelog](CHANGELOG.md#700---2026-09-12).
+
+<details>
+<summary>Upgrade to 6.0</summary>
+
 ### Upgrade to 6.0
 
 6.0 drops `containerStyle`, `videoContainerStyle`, and `videoStyle`. Use `*ClassName` and `--rbs-*`.
@@ -143,6 +158,7 @@ Layout CSS is `@layer react-barcode-scanner`. `rbs:video` and `videoClassName` s
 A user-facing camera gets `rbs:video-mirrored` instead of an inline transform.
 
 Full notes are in the [6.0.0 changelog](CHANGELOG.md#600---2026-09-10).
+</details>
 
 <details>
 <summary>Upgrade to 5.0</summary>

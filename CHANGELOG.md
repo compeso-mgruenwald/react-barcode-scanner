@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.0] - 2026-09-12
+
+### Breaking
+
+- The built-in viewfinder draws center crosshairs. Pass `viewfinderCrosshairsDisabled` to hide them.
+- Corner marks sit on the cutout edge. The cutout is 15% inset (was 10%).
+- `Viewfinder` is `React.ComponentType<{ className?: string; withCrosshairs: boolean }> | null`. A custom component may use `withCrosshairs` or ignore it.
+
+### Added
+
+- `flashlight`. Omit or `false`: no control. `true`: default button. An object sets `className`, `turnOnLabel`, `turnOffLabel`, and `onError`. Does not turn the lamp on. The button shows only when the live track reports torch support.
+- `FlashlightError` codes: `NO_TRACK`, `NO_GET_CAPABILITIES`, `TORCH_MISSING`, `TORCH_FALSE`, `TORCH_SEQUENCE_INCOMPLETE`, `CONSTRAINT_APPLY_FAILED`.
+- `--rbs-flashlight-icon` and `--rbs-flashlight-background`. Off uses those colors as named. On they swap, and the button gets a box-shadow.
+
+### Changed
+
+- `react-icons` peer is `>=4.9` (was `>=4.8`).
+
 ## [6.0.0] - 2026-09-10
 
 ### Breaking
@@ -159,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Earlier git tags exist (`v2.2.0` through `v1.1.0`, plus `1.2.0`) and have no GitHub Release notes.
 
+[7.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v6.0.0...v7.0.0
 [6.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v5.0.0...v6.0.0
 [5.0.0]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.1...v5.0.0
 [4.0.1]: https://github.com/compeso-mgruenwald/react-barcode-scanner/compare/v4.0.0...v4.0.1
